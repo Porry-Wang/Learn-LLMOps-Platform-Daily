@@ -20,8 +20,6 @@ Q4  边缘触发丢一个事件后为什么无法自愈？真实系统怎么补�
 >
 > 动手任务（非问答）就两件：Q9 的 break 实验、Q10 的三组参数实验，日志各留一份进 `reports/w1/`，最后写 `day01.md` + git commit。
 
-
-
 # **第二组：代码追问三题（读完/跑完代码后答 D1.2）**
 
 Q5  diff() 里数 Running 时，如果把状态过滤去掉、直接数 dict 里所有 key，
@@ -47,10 +45,14 @@ Q8  集合推导式 {name for name, state in observed.items() if state=="Running
 Q9  （D1.4，先做实验再答）把 pass 改成 break、跑 --disturbance 5 后，为什么日志里根本看不到 💥 那行？「退出后的什么都不做」和「巡视后的什么都不做」差别到底在哪？
 
 Q10 （D1.5）跑三组 edge 参数记录结果：
-     ① --edge-triggered --drop-event 3 --fail-rate 0.5
-     ② --edge-triggered --drop-event 10 --fail-rate 0.3
-     ③ --edge-triggered --drop-event 30 --fail-rate 0.3（几乎不丢，对照组）
-     然后答：「丢事件就下班」和「达标就 break」为什么是同一个错误的两种写法？
+
+​     ① --edge-triggered --drop-event 3 --fail-rate 0.5
+
+​     ② --edge-triggered --drop-event 10 --fail-rate 0.3
+
+​     ③ --edge-triggered --drop-event 30 --fail-rate 0.3（几乎不丢，对照组）
+
+​     然后答：「丢事件就下班」和「达标就 break」为什么是同一个错误的两种写法？
 
 
 
