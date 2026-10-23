@@ -11,6 +11,14 @@
     · rank 分配、拒绝原因、top-3  → S7 placement.py
     · 真实 K8s 调度、GPU/NCCL     → 全项目不做
 
+最小用法：
+
+    >>> top = feasible_placements(16, 8, 70, 4096, 80, 8192, 64)[0]
+    >>> top.parallel
+    'TP8 PP1 DP16 ZeRO-1'
+    >>> round(top.total_gb, 2)
+    52.97
+
 三个玩具边界，讲报告时要主动说：
 
     1. 通信缓冲区记 0：真实系统还要留 activation/通信 bucket 的余量。
@@ -22,6 +30,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import List, Sequence
+
+__all__ = [
+    "Placement",
+    "per_gpu_model_state_bytes",
+    "per_gpu_activation_bytes",
+    "train_time_hours",
+    "pp_bubble_ratio",
+    "feasible_placements",
+]
 
 GB = 1e9  # 十进制 GB（NVIDIA / 论文口径）
 
@@ -75,6 +92,12 @@ class Placement:
             "cards_per_machine": self.cards_per_machine,
             "world_size": self.world_size,
         }
+
+    def summary(self) -> str:
+        """一行摘要，方便 demo / CLI 打印。"""
+        return (f"{self.parallel} {self.recompute:<9s} | "
+                f"{self.total_gb:6.2f} GB | bubble {self.bubble:5.1%} | "
+                f"{self.effective_hours:7.1f} h")
 
 
 # ---------------------------------------------------------------------------
@@ -205,6 +228,9 @@ def feasible_placements(
       OOM 是准入门槛，不是排序键。
 
     micro_batches=0 表示每个方案取 m=2·pp；给固定值则只保留满足 m>=2·pp 的方案。
+
+    zero_stages 默认只枚举 ZeRO-0/1。公式支持 0/1/2/3，但 ZeRO-2/3 的通信成本
+    没有定价，混进排序会得到过于乐观的结论；面试里要主动说明这个边界。
     """
     _validate_inputs(
         machines, cards_per_machine, params_b, seq_len, layers, hidden, heads,
@@ -320,6 +346,11 @@ def _validate_inputs(
         raise ValueError("micro_batches 必须 >= 0")
     if max_tp < 1:
         raise ValueError("max_tp 必须 >= 1")
+
+    if not zero_stages:
+        raise ValueError("zero_stages 不能为空")
+    if not recompute_modes:
+        raise ValueError("recompute_modes 不能为空")
 
     valid_zero = (0, 1, 2, 3)
     for stage in zero_stages:

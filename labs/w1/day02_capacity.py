@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
 """
-Day 2 · 显存与算力账本计算器 —— 填空版骨架（注释先行）
+Day 2 · 显存与算力账本计算器（完整阅读版）
 
-阅读方式：每个账本函数上方有一段“阅读笔记”，先读笔记，再读代码。
+这份脚本把「一个训练配置要多少显存、要跑多久」拆成三本账：
 
-使用说明：
-  1) 从上往下读注释。每个 TODO(你填) 只留 1~3 行空，公式和切分规则都写在注释里。
-     这一版考的是「把账本规则翻译成代码」，不是凭空记公式。
-  2) 填完先跑三个验证案例（命令见文件末尾 __main__ 注释）。
-     计划文档 §Day2 对三个案例给的预期结论偏粗糙，**以你的公式为准，
-     算出差异本身就是报告里最值钱的一行。**
-  3) 最后填 --scan。做完它你就有一个入职后真能用的工具。
+  ① 模型状态账：16Ψ 字节/参数；TP×PP 切模型，dp 只切 ZeRO 允许切的部分
+  ② 激活账：每层 s·b·h·(34 + 5·a·s/h) 字节；只按 TP 切、按 PP 分层
+  ③ 算力账：C = 6·N·D FLOPs（full recompute 用 8ND）
 
-三本账（这个脚本的全部业务逻辑）：
-  ① 模型状态账：16Ψ 字节/参数；TP×PP 切满，dp 只切 ZeRO 允许切的那几层
-  ② 激活账：每层 s·b·h·(34 + 5·a·s/h) 字节；只按 TP 切、按 PP 分层，recompute 打折
-  ③ 算力账：C = 6·N·D FLOPs（recompute=full 用 8ND）；时长 = C / (卡数×峰值×MFU)
+阅读顺序：
+  1) 先读三个账本函数上方的注释；
+  2) 再读 build_report()，看三本账怎么装配成一张单配置报告；
+  3) 最后读 scan()，看平台如何枚举候选、先筛 OOM、再按有效时长排序。
 
-★ 本日命门（默写关只默这五条，不默代码）：
+配套文件：
+  · day02_debug.py              把 CLI 参数写成 Python 用例，方便断点单步
+  · reports/w1/day02.md         三本账的完整推导与案例
+  · reports/w1/day02_question.md 闭卷题库 + 标准答案
+
+五个命门（闭卷只默这五条，不默代码）：
   ① 16 = 2+2+4+4+4 各对应什么
   ② 四个 ZeRO stage 的每卡模型状态公式
   ③ 激活为什么只切 TP 不切 dp；s² 项从哪来
@@ -25,8 +26,8 @@ Day 2 · 显存与算力账本计算器 —— 填空版骨架（注释先行）
   ⑤ --scan 的排序键为什么不能是「是否 OOM」
 """
 import argparse
-import itertools
 import sys
+from typing import List, Optional, Sequence
 
 GB = 1e9  # 十进制 GB（NVIDIA / 论文口径）
 
@@ -95,7 +96,8 @@ GB = 1e9  # 十进制 GB（NVIDIA / 论文口径）
 # ============================================================================
 
 
-def per_gpu_model_state_bytes(params_b, zero_stage, tp, pp, dp):
+def per_gpu_model_state_bytes(params_b: float, zero_stage: int,
+                              tp: int, pp: int, dp: int) -> float:
     """账本①：每卡模型状态（字节）。
 
     每个参数 16 字节 = 参数 2 + 梯度 2 + fp32 主参数 4 + 动量 4 + 方差 4。
@@ -105,25 +107,30 @@ def per_gpu_model_state_bytes(params_b, zero_stage, tp, pp, dp):
       dp 这一维只有 ZeRO 允许切的部分才能再除以 dp：
         stage 0：什么都不给 dp 切   → 每卡 16Ψ / (tp·pp)
         stage 1：优化器 12Ψ 给 dp 切 → 每卡 (4Ψ + 12Ψ/dp) / (tp·pp)
-        stage 2：梯度 2Ψ 也给 dp 切  → 每卡 (2Ψ + 14Ψ/dp) / (tp·pp)   ← 下一讲
-        stage 3：全部给 dp 切        → 每卡 16Ψ / (tp·pp·dp)           ← 下一讲
+        stage 2：梯度 2Ψ 也给 dp 切  → 每卡 (2Ψ + 14Ψ/dp) / (tp·pp)
+        stage 3：全部给 dp 切        → 每卡 16Ψ / (tp·pp·dp)
 
     params_b 的单位是 B（十亿个参数）。返回每卡字节数（float）。
     """
-    psi = params_b * 1e9  # 已给：7 → 70 亿个参数
+    psi = params_b * 1e9  # 7 → 70 亿个参数
 
     if zero_stage == 0:
-        per_gpu = 16 * psi  # 空1：16Ψ 一个字节都不切
+        per_gpu = 16 * psi
     elif zero_stage == 1:
-        per_gpu = 4 * psi + 12 * psi / dp  # 4Ψ 每卡都留；12Ψ 按 dp 切开
+        per_gpu = 4 * psi + 12 * psi / dp
+    elif zero_stage == 2:
+        per_gpu = 2 * psi + 14 * psi / dp
+    elif zero_stage == 3:
+        per_gpu = 16 * psi / dp
     else:
-        raise NotImplementedError("ZeRO-2/3 下一讲再填，今天只用 0 和 1")
+        raise ValueError(f"未知 ZeRO stage: {zero_stage}（只支持 0/1/2/3）")
 
-    return per_gpu / (tp * pp)  # 已给：今天 tp=pp=1，照写即可
+    return per_gpu / (tp * pp)
 
 
-def per_gpu_activation_bytes(seq_len, micro_bs, hidden, heads, layers,
-                             recompute, tp, pp):
+def per_gpu_activation_bytes(seq_len: int, micro_bs: int, hidden: int,
+                             heads: int, layers: int, recompute: str,
+                             tp: int, pp: int) -> float:
     """账本②：每卡激活（字节）。
 
     单层、切分前： s·b·h·(34 + 5·a·s/h) 字节
@@ -151,7 +158,8 @@ def per_gpu_activation_bytes(seq_len, micro_bs, hidden, heads, layers,
     return per_layer * layers / pp / tp
 
 
-def train_time_hours(params_b, tokens_t, gpus, peak_tflops, mfu, recompute):
+def train_time_hours(params_b: float, tokens_t: float, gpus: int,
+                     peak_tflops: float, mfu: float, recompute: str) -> float:
     """账本③：纯算力下界的训练时长（小时）。
 
     C = 6·N·D FLOPs（recompute=full → 8·N·D：前向重算多烧一遍）。
@@ -172,7 +180,7 @@ def train_time_hours(params_b, tokens_t, gpus, peak_tflops, mfu, recompute):
     return flops / effective / 3600
 
 
-def pp_bubble_ratio(pp, micro_batches):
+def pp_bubble_ratio(pp: int, micro_batches: int) -> float:
     """MFU 上界的第一个约束：流水线气泡占比 = (p-1)/(m+p-1)。
 
     m（micro-batch 数）太小，气泡吃掉一切——这就是为什么 scan 里
@@ -181,25 +189,35 @@ def pp_bubble_ratio(pp, micro_batches):
     return (pp - 1) / (micro_batches + pp - 1)
 
 
-def tp_ok(tp):
+def tp_ok(tp: int) -> bool:
     """MFU 上界的第二个约束：TP 不出 NVLink 域（单机 8 卡）→ tp <= 8。
     跨机做 TP 不是不行，是慢到不值得——自检题 4 会要求你解释。
     """
     return tp <= 8
 
 
-# ---------- 以下为「填充物」：解析、装配、打印，已给全，不用你写 ----------
+# ---------- 装配与打印：把三本账拼成一张报告 ----------
 
-def build_report(args):
-    model_state = per_gpu_model_state_bytes(args.params, args.zero, args.tp, args.pp, args.dp)
-    activation = per_gpu_activation_bytes(args.seq_len, args.micro_bs, args.hidden,
-                                         args.heads, args.layers, args.recompute,
-                                         args.tp, args.pp)
-    comm_buffer = 0.0  # 教学版：通信缓冲区置 0，报告里注一句真实系统里它是什么量级
+def build_report(args: argparse.Namespace) -> bool:
+    """打印单配置的三本账明细，返回是否放得下。"""
+    model_state = per_gpu_model_state_bytes(
+        args.params, args.zero, args.tp, args.pp, args.dp,
+    )
+    activation = per_gpu_activation_bytes(
+        args.seq_len, args.micro_bs, args.hidden, args.heads, args.layers,
+        args.recompute, args.tp, args.pp,
+    )
+    # 教学版把通信缓冲区记 0；真实系统里它通常是数 GB 到十几 GB，不能忽略。
+    comm_buffer = 0.0
     total = model_state + activation + comm_buffer
-    hours = train_time_hours(args.params, args.tokens, args.gpus,
-                             args.peak_tflops, args.mfu, args.recompute)
-    bubble = pp_bubble_ratio(args.pp, args.micro_batches or 2 * args.pp)
+
+    hours = train_time_hours(
+        args.params, args.tokens, args.gpus, args.peak_tflops, args.mfu,
+        args.recompute,
+    )
+    m = args.micro_batches or 2 * args.pp
+    bubble = pp_bubble_ratio(args.pp, m)
+    effective_hours = hours / (1 - bubble)
 
     rows = [
         ("权重+梯度+优化器(每卡)", model_state),
@@ -208,24 +226,30 @@ def build_report(args):
     ]
     print(f"\n== 每卡显存明细（{args.params}B, TP{args.tp} PP{args.pp} DP{args.dp}, "
           f"ZeRO-{args.zero}, recompute={args.recompute}）==")
-    for name, v in rows:
-        print(f"  {name:<24s} {v / GB:8.2f} GB")
+    print(f"  拓扑：TP{args.tp} × PP{args.pp} × DP{args.dp} = "
+          f"{args.tp * args.pp * args.dp} 卡；m={m}")
+    for name, value in rows:
+        print(f"  {name:<24s} {value / GB:8.2f} GB")
     print(f"  {'合计/卡':<24s} {total / GB:8.2f} GB   (HBM {args.hbm_gb} GB)")
     print(f"  结论：{'❌ OOM' if total / GB > args.hbm_gb else '✅ 放得下'}")
-    print(f"  训练时长下界：{hours:.1f} 小时（MFU={args.mfu}；未扣气泡 "
-          f"{bubble:.1%} 与 TP 通信，真实值更长）")
+    print(f"  纯算力时长：{hours:.1f} 小时（MFU={args.mfu}）")
+    print(f"  气泡占比：  {bubble:.1%} → 扣气泡后的有效时长：{effective_hours:.1f} 小时")
+    print("  注：未计 TP/ZeRO 通信成本，真实值更长。")
     return total / GB <= args.hbm_gb
 
 
-def scan(args):
+def scan(args: argparse.Namespace) -> None:
     """枚举 (tp, pp, dp, zero, recompute)：tp*pp*dp == gpus，tp<=8，
     tp 整除 heads，m>=2*pp。输出所有不 OOM 的配置，按预估吞吐排序（命门⑤）：
         吞吐 ∝ 1 / (时长 / (1 - 气泡占比))
+
+    注意：scan 默认只枚举 ZeRO-0/1。ZeRO-2/3 的公式已在账本①里实现，
+    但通信成本没有定价，放进排序会给出过于乐观的结论，所以先不混进来。
     """
     m_fixed = args.micro_batches  # 0 表示每个配置按 m = 2*pp 取
     m_desc = "m=2·pp" if not m_fixed else f"m={m_fixed} >= 2·pp"
     tried = 0
-    candidates = []
+    candidates: List[dict] = []
 
     # ① 枚举拓扑：tp 不出单机 NVLink 域，pp/dp 必须整除剩余卡数
     for tp in range(1, 9):
@@ -247,7 +271,7 @@ def scan(args):
 
             # ② 固定拓扑后，再枚举 ZeRO 与重算策略，逐本账累加
             zero_stages = (0,) if dp == 1 else (0, 1)  # dp=1 时 ZeRO-1 与 ZeRO-0 等价，去重
-            for zero in zero_stages:  # ZeRO-2/3 下一讲
+            for zero in zero_stages:
                 model = per_gpu_model_state_bytes(args.params, zero, tp, pp, dp)
                 for recompute in ("none", "selective", "full"):
                     tried += 1
@@ -300,7 +324,7 @@ def scan(args):
     print("  真实系统里跨 NVLink 域的 TP 会继续掉 MFU，所以这里只硬性要求 tp<=8。")
 
 
-def parse_args():
+def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Day 2 · 显存与算力账本计算器")
     p.add_argument("--params", type=float, required=True, help="参数量，单位 B")
     p.add_argument("--seq-len", type=int, default=4096)
@@ -311,7 +335,8 @@ def parse_args():
     p.add_argument("--tp", type=int, default=1)
     p.add_argument("--pp", type=int, default=1)
     p.add_argument("--dp", type=int, default=1)
-    p.add_argument("--zero", type=int, choices=[0, 1, 2, 3], default=1)
+    p.add_argument("--zero", type=int, choices=[0, 1, 2, 3], default=1,
+                   help="单配置模式使用；--scan 目前只枚举 0/1")
     p.add_argument("--recompute", choices=["none", "selective", "full"], default="none")
     p.add_argument("--gpus", type=int, required=True)
     p.add_argument("--peak-tflops", type=float, default=989.0, help="H100 BF16 稠密峰值")
@@ -319,19 +344,29 @@ def parse_args():
     p.add_argument("--tokens", type=float, default=1.0, help="训练 token 总数，单位 T")
     p.add_argument("--mfu", type=float, default=0.4)
     p.add_argument("--micro-batches", type=int, default=0, help="m，0=取 2*pp")
-    p.add_argument("--scan", action="store_true")
-    return p.parse_args()
+    p.add_argument("--scan", action="store_true", help="枚举所有可行拓扑并排序")
+    return p.parse_args(argv)
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    args = parse_args(argv)
+
+    if args.scan:
+        # scan 自己枚举 tp/pp/dp，不再校验命令行里的那一组。
+        scan(args)
+        return 0
+
+    if args.tp * args.pp * args.dp != args.gpus:
+        print(f"约束不满足：tp*pp*dp={args.tp * args.pp * args.dp} "
+              f"!= gpus={args.gpus}", file=sys.stderr)
+        return 2
+
+    build_report(args)
+    return 0
 
 
 if __name__ == "__main__":
-    args = parse_args()
-    if args.scan:
-        # scan 自己枚举 tp/pp/dp，不再校验命令行里的那一组
-        scan(args)
-    else:
-        if args.tp * args.pp * args.dp != args.gpus:
-            sys.exit(f"约束不满足：tp*pp*dp={args.tp * args.pp * args.dp} != gpus={args.gpus}")
-        build_report(args)
+    raise SystemExit(main())
 
 # 三个验证案例（逐条跑，把输出表贴进 reports/w1/day02.md）：
 #
