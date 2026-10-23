@@ -3,18 +3,25 @@
 三个案例对应 D2 的三个配置。每个测试保护的不变量：
 
     1. 7B/8    —— 单机 8 卡时，TP 上限就是 8；top-1 必须是小 TP + 大 DP。
-    2. 70B/128 —— 模型变大后，必须先上 TP 才放得下；top-1 是 TP8/PP1/DP16。
+    2. 70B/128 —— top-1 用满单机 NVLink 域；PP=1 时 TP<8 只能靠 full 重算勉强放下。
     3. 405B/16384 —— 卡多不等于免费；PP 气泡会改变排序，OOM 只是门槛。
 
 断言同时检查：所有返回方案都不 OOM、拓扑自洽、TP 不出单机。
 """
 
+from typing import List
+
 import pytest
 
-from porryllmops.capacity import feasible_placements
+from porryllmops.capacity import Placement, feasible_placements
 
 
-def assert_invariants(candidates, world_size, cards_per_machine, hbm_gb):
+def assert_invariants(
+    candidates: List[Placement],
+    world_size: int,
+    cards_per_machine: int,
+    hbm_gb: float,
+) -> None:
     assert candidates, "至少应有一个可行方案"
     for p in candidates:
         assert p.world_size == world_size
@@ -48,7 +55,7 @@ def test_7b_8cards_single_machine():
 
 
 def test_70b_128cards_needs_tp():
-    """70B on 16×8：不切 TP 放不下，top-1 必须用满单机 NVLink 域。"""
+    """70B on 16×8：top-1 用满 NVLink 域；TP<8 只能靠 PP 或 full 重算换显存。"""
     candidates = feasible_placements(
         machines=16,
         cards_per_machine=8,
