@@ -1,7 +1,7 @@
 # Day 1 · 标准答案（Q1–Q11 · 第一人称 STAR 版）
 
 > 用法：先看题，遮住答案，用「我遇到什么 → 我要解决什么 → 我做了什么 → 结果如何」讲一遍。
-> 题目见 `day01_question.md`；当天实验记录见 `day01.md`。
+> 题目见 `question.md`；当天实验记录见 `README.md`。
 >
 > 视角说明：S 取自我在这门课里**真实跑过的实验**（含 log 证据）和**公开可查的行业做法**，
 > 不虚构任职经历，也不给任何平台代号。第一人称是“项目作者”的口吻，不是“某公司亲历者”。
@@ -12,7 +12,7 @@
 
 **S｜我遇到的情况**
 
-我写 `day01_reconcile_loop.py` 的第一版时，用的是最直觉的写法：观察一次，缺几个补几个，补完退出。跑通之后我做了个实验——把循环里的 `pass` 改成 `break`，让它在第 6 轮就结束。结果很安静：没有报错，结尾还打印了 `✅ 3/3`，但第 10 到 30 轮的五次扰动，一次都没人处理。
+我写 `reconcile_loop.py` 的第一版时，用的是最直觉的写法：观察一次，缺几个补几个，补完退出。跑通之后我做了个实验——把循环里的 `pass` 改成 `break`，让它在第 6 轮就结束。结果很安静：没有报错，结尾还打印了 `✅ 3/3`，但第 10 到 30 轮的五次扰动，一次都没人处理。
 
 **T｜我要解决的问题**
 
@@ -102,7 +102,7 @@
 
 **S｜我遇到的情况**
 
-D1.5 我想验证“事件驱动是不是更省”，于是写了 edge 版：只在 `changed` 非空时运行。然后我故意在第 3 轮丢掉一条 Pod 死亡事件。结果是——第 4 到 30 轮，动作数全是 0，最终停在 0/3。日志我存成了 `d15_drop3_fail05.log`。
+D1.5 我想验证“事件驱动是不是更省”，于是写了 edge 版：只在 `changed` 非空时运行。然后我故意在第 3 轮丢掉一条 Pod 死亡事件。结果是——第 4 到 30 轮，动作数全是 0，最终停在 0/3。日志我存成了 `exp5_drop3_fail05.log`。
 
 **T｜我要解决的问题**
 
@@ -117,7 +117,7 @@ D1.5 我想验证“事件驱动是不是更省”，于是写了 edge 版：只
 
 **R｜结果**
 
-单靠事件无法自愈。我还跑了个对照——丢事件发生在第 30 轮（`d15_drop30_control.log`），前面一直正常；这说明 edge 不是永远坏，**事件不丢时它更快**，坏的时候是“你看不见”。分工是：事件负责快，resync 负责不漏。
+单靠事件无法自愈。我还跑了个对照——丢事件发生在第 30 轮（`exp5_drop30_control.log`），前面一直正常；这说明 edge 不是永远坏，**事件不丢时它更快**，坏的时候是“你看不见”。分工是：事件负责快，resync 负责不漏。
 
 **可能被追问**
 
@@ -273,7 +273,7 @@ D1.5 我想验证“事件驱动是不是更省”，于是写了 edge 版：只
 
 **R｜结果**
 
-日志空白不代表没故障，只代表**观测窗口被截短**了。对照结果是：break 版 0 次扰动、第 6 轮退出（`d14_quit.log`）；巡视版满 30 轮、5 次扰动全部被修复（`d14_keep_looking.log`）。
+日志空白不代表没故障，只代表**观测窗口被截短**了。对照结果是：break 版 0 次扰动、第 6 轮退出（`exp4_quit.log`）；巡视版满 30 轮、5 次扰动全部被修复（`exp4_keep_looking.log`）。
 
 **可能被追问**
 
@@ -356,24 +356,24 @@ D1.5 我想验证“事件驱动是不是更省”，于是写了 edge 版：只
 cd ~/Documents/Qoder/2026-09-20/b4f0067e/llmops-platform
 
 # 第一组：巡视版（保持 pass 不动）
-python3 labs/w1/day01_reconcile_loop.py --disturbance 5 | tee reports/w1/d14_keep_looking.log
+python3 course/day01/reconcile_loop.py --disturbance 5 | tee course/day01/logs/exp4_keep_looking.log
 
 # 第二组：break 版——先把第 118 行 pass 改成 break，再跑
-python3 labs/w1/day01_reconcile_loop.py --disturbance 5 | tee reports/w1/d14_quit.log
+python3 course/day01/reconcile_loop.py --disturbance 5 | tee course/day01/logs/exp4_quit.log
 
 # 改回 pass（D1.5 还要用满 30 轮的版本）
 
 # 第三组：D1.5 三组边缘触发参数
-python3 labs/w1/day01_reconcile_loop.py --edge-triggered --drop-event 3  --fail-rate 0.5 | tee reports/w1/d15_drop3_fail05.log
-python3 labs/w1/day01_reconcile_loop.py --edge-triggered --drop-event 10 --fail-rate 0.3 | tee reports/w1/d15_drop10.log
-python3 labs/w1/day01_reconcile_loop.py --edge-triggered --drop-event 30 --fail-rate 0.3 | tee reports/w1/d15_drop30_control.log
+python3 course/day01/reconcile_loop.py --edge-triggered --drop-event 3  --fail-rate 0.5 | tee course/day01/logs/exp5_drop3_fail05.log
+python3 course/day01/reconcile_loop.py --edge-triggered --drop-event 10 --fail-rate 0.3 | tee course/day01/logs/exp5_drop10.log
+python3 course/day01/reconcile_loop.py --edge-triggered --drop-event 30 --fail-rate 0.3 | tee course/day01/logs/exp5_drop30_control.log
 ```
 
-`| tee 文件名` 是“输出既显示在屏幕上、又存进文件”。跑完 `ls reports/w1/` 应看到 5 个 `.log`。第三组是对照组：丢事件发生得很晚时，系统前面一直正常——edge 不是永远坏，是坏的时候你看不见。
+`| tee 文件名` 是“输出既显示在屏幕上、又存进文件”。跑完 `ls course/day01/logs/` 应看到 5 个 `.log`。第三组是对照组：丢事件发生得很晚时，系统前面一直正常——edge 不是永远坏，是坏的时候你看不见。
 
-### A2｜`day01.md` 的写作模板
+### A2｜当天 `README.md` 的写作模板
 
-`day01.md` 是当天实验记录，不需要文采，按五个固定问题填，每个问题两三段：
+`course/dayNN/README.md` 是当天实验记录，不需要文采，按五个固定问题填，每个问题两三段：
 
 ```
 ## 做了什么          ← 写了/跑了什么，做了哪几组实验

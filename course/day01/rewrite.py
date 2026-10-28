@@ -9,9 +9,9 @@ Day 1 · 亲手写一个 Reconcile Loop（教学版完整实现）
   - 无限逼近：单轮可能失败（随机 30%），但循环会把系统拉回期望状态
 
 运行：
-  python3 day01_reconcile_loop.py
-  python3 day01_reconcile_loop.py --fail-rate 0.5 --disturbance 5
-  python3 day01_reconcile_loop.py --edge-triggered --drop-event 3 --fail-rate 0.5
+  python3 reconcile_loop.py
+  python3 reconcile_loop.py --fail-rate 0.5 --disturbance 5
+  python3 reconcile_loop.py --edge-triggered --drop-event 3 --fail-rate 0.5
 """
 import argparse
 import random

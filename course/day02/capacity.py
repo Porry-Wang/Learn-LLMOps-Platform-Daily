@@ -14,9 +14,9 @@ Day 2 · 显存与算力账本计算器（完整阅读版）
   3) 最后读 scan()，看平台如何枚举候选、先筛 OOM、再按有效时长排序。
 
 配套文件：
-  · day02_debug.py              把 CLI 参数写成 Python 用例，方便断点单步
-  · reports/w1/day02.md         三本账的完整推导与案例
-  · reports/w1/day02_question.md 闭卷题库 + 标准答案
+  · debug.py              把 CLI 参数写成 Python 用例，方便断点单步
+  · course/day02/README.md         三本账的完整推导与案例
+  · course/day02/question.md 闭卷题库 + 标准答案
 
 五个命门（闭卷只默这五条，不默代码）：
   ① 16 = 2+2+4+4+4 各对应什么
@@ -368,19 +368,19 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 if __name__ == "__main__":
     raise SystemExit(main())
 
-# 三个验证案例（逐条跑，把输出表贴进 reports/w1/day02.md）：
+# 三个验证案例（逐条跑，把输出表贴进 course/day02/README.md）：
 #
 # 案例1  7B / s=4096 / b=1 / TP1 PP1 DP8 / ZeRO-1 / H100
-#   python3 day02_capacity.py --params 7 --layers 32 --hidden 4096 --heads 32 \
+#   python3 capacity.py --params 7 --layers 32 --hidden 4096 --heads 32 \
 #     --tp 1 --pp 1 --dp 8 --gpus 8 --zero 1 --recompute full --tokens 1
 #   → 先看 recompute=none 会不会 OOM，再换 full——「激活占多少」就是这一问的答案
 #
 # 案例2  70B / TP8 PP1 DP16（128 卡）/ ZeRO-1
-#   python3 day02_capacity.py --params 70 --layers 80 --hidden 8192 --heads 64 \
+#   python3 capacity.py --params 70 --layers 80 --hidden 8192 --heads 64 \
 #     --tp 8 --pp 1 --dp 16 --gpus 128 --zero 1 --recompute selective --tokens 1
 #
 # 案例3  405B / Llama3 论文配置 TP8 PP16 DP128（16384 卡）/ ZeRO-1
-#   python3 day02_capacity.py --params 405 --layers 126 --hidden 16384 --heads 64 \
+#   python3 capacity.py --params 405 --layers 126 --hidden 16384 --heads 64 \
 #     --tp 8 --pp 16 --dp 128 --gpus 16384 --zero 1 --recompute full \
 #     --micro-batches 32 --tokens 1
 #

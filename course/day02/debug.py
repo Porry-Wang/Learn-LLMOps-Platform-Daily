@@ -3,17 +3,17 @@
 Day 2 · 调试入口：把命令行参数写成 Python 用例
 
 为什么单独一个文件：
-  - day02_capacity.py 负责命令行解析和报告打印；
+  - capacity.py 负责命令行解析和报告打印；
   - 本文件负责把参数写死，方便在 PyCharm 里直接 Debug、
     在函数里打断点、单步看每个变量。
 
 用法：
   1) 在 PyCharm 打开本文件；
   2) 在 run_case() 的 model_state = ... 那一行打断点；
-  3) 右键本文件 → Debug 'day02_debug'（不需要配置命令行参数）；
+  3) 右键本文件 → Debug 'debug'（不需要配置命令行参数）；
   4) 想换案例，改 CASES / SCAN_CASES 里的数字即可；
   5) 想只跑一个单配置案例，把 ONLY 改成对应 case 的 name；
-  6) 终端也可以直接跑：.venv/bin/python labs/w1/day02_debug.py
+  6) 终端也可以直接跑：.venv/bin/python course/day02/debug.py
 
 两个开关：
   RUN_CASES=True  跑单配置案例（三本账明细）
@@ -25,10 +25,10 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Dict, List, Optional
 
-# 保证从任何工作目录运行都能 import 到同目录的 day02_capacity。
+# 保证从任何工作目录运行都能 import 到同目录的 capacity。
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from day02_capacity import (  # noqa: E402
+from capacity import (  # noqa: E402
     GB,
     per_gpu_activation_bytes,
     per_gpu_model_state_bytes,
@@ -94,7 +94,7 @@ def run_case(
 # 每个 dict 就是一条 CLI 命令的 Python 版本。
 # 想调试哪一个，就把哪一个留在列表里；其他的注释掉即可。
 CASES: List[Case] = [
-    # python3 day02_capacity.py --params 7 --layers 32 --hidden 4096 --heads 32 \
+    # python3 capacity.py --params 7 --layers 32 --hidden 4096 --heads 32 \
     #   --tp 1 --pp 1 --dp 8 --gpus 8 --zero 1 --recompute none --tokens 1
     # 预期：38.50 + 104.15 = 142.65 GB -> OOM
     dict(
@@ -111,7 +111,7 @@ CASES: List[Case] = [
         tp=1, pp=1, dp=8, gpus=8, zero=1,
         recompute="full", tokens=1, expect_oom=False,
     ),
-    # python3 day02_capacity.py --params 70 --layers 80 --hidden 8192 --heads 64 \
+    # python3 capacity.py --params 70 --layers 80 --hidden 8192 --heads 64 \
     #   --tp 8 --pp 1 --dp 16 --gpus 128 --zero 1 --recompute selective --tokens 1
     dict(
         name="case2_70B_TP8",
@@ -119,7 +119,7 @@ CASES: List[Case] = [
         tp=8, pp=1, dp=16, gpus=128, zero=1,
         recompute="selective", tokens=1, expect_oom=False,
     ),
-    # python3 day02_capacity.py --params 405 --layers 126 --hidden 16384 --heads 64 \
+    # python3 capacity.py --params 405 --layers 126 --hidden 16384 --heads 64 \
     #   --tp 8 --pp 16 --dp 128 --gpus 16384 --zero 1 --recompute full \
     #   --micro-batches 32 --tokens 1
     dict(
@@ -128,7 +128,7 @@ CASES: List[Case] = [
         tp=8, pp=16, dp=128, gpus=16384, zero=1,
         recompute="full", tokens=1, micro_batches=32, expect_oom=False,
     ),
-    # python3 day02_capacity.py --params 7 --layers 32 --hidden 4096 --heads 32 \
+    # python3 capacity.py --params 7 --layers 32 --hidden 4096 --heads 32 \
     #   --tp 8 --pp 1 --dp 125 --gpus 1000 --zero 1 --recompute none \
     #   --tokens 1 --mfu 0.4
     # 预期：训练时长约 29.5 小时

@@ -1,9 +1,9 @@
 # Day 2 · 显存与算力账本（2026-10-22）
 
-- 代码：`labs/w1/day02_capacity.py`（单配置报告 + `--scan`）、`labs/w1/day02_debug.py`（断点用例）
-- 项目：`stage4-code/porryllmops/capacity.py` → `feasible_placements()`
-- 测试：`stage4-code/porryllmops/tests/test_capacity.py`（`3 passed`）
-- 完整问答：`day02_question.md`（7 张问题卡）、`day02_answer.md`（Q1–Q7 全文答案）
+- 代码：`capacity.py`（单配置报告 + `--scan`）、`debug.py`（断点用例）
+- 平台侧：`platform/src/porryllmops/capacity.py` → `feasible_placements()`
+- 测试：`platform/src/porryllmops/tests/test_capacity.py`（`3 passed`）
+- 完整问答：`question.md`（7 张问题卡）、`answer.md`（Q1–Q7 全文答案）
 
 ## 这一课的整体知识（人话版）
 
@@ -100,7 +100,7 @@ m 越大，气泡越小；pp 越大，气泡越大。工程上常要求 `m >= 2p
 ## 做了什么
 
 1. 闭卷回答 7 个问题：16 字节的构成、激活公式的 34 与 5as/h、ZeRO-3 的显存与通信账、TP 为什么不出单机、1000×H100 的时长手算、平台与 Infra 的边界、scan 的排序键。
-2. 实现 `day02_capacity.py`：三本账公式、ZeRO-0/1/2/3、none/selective/full 三种 recompute、单配置明细报告，以及枚举 TP/PP/DP/ZeRO/recompute 的 `--scan`。
+2. 实现 `capacity.py`：三本账公式、ZeRO-0/1/2/3、none/selective/full 三种 recompute、单配置明细报告，以及枚举 TP/PP/DP/ZeRO/recompute 的 `--scan`。
 3. 把扫描逻辑抽成项目模块 `feasible_placements()`：枚举所有满足约束的放置，按有效时长排序；用 7B/8、70B/128、405B/16384 三个 pytest 用例锁定行为。
 4. 修正平台边界：不是“平台决定切法”，而是平台提供资源信息、容量计算、准入校验和可复盘证据，Infra 把切法写进脚本。
 5. 重整文档：question 只放题，answer 放全文答案，本文按“整体知识 → 做了什么 → 看到什么 → 为什么 → 结论 → 业务映射 → 欠账”收口。
@@ -122,9 +122,9 @@ m 越大，气泡越小；pp 越大，气泡越大。工程上常要求 `m >= 2p
 - **70B / 128 卡**：none 是 106.66 GB，OOM；selective 是 52.97 GB、2304 h。TP4 PP1 DP32 + full 也能跑（77.90 GB），但要 3072 h，慢 33%——OOM 不是排序键。
 - **405B / 16384 卡**：论文配置 TP8 PP16 DP128 + full 只用 13.09 GB，但气泡 31.9%，有效约 204 h；scan 在 m=32 时选 TP8 PP4 DP512 + selective，59.91 GB、气泡 8.6%、113.9 h。最省显存的不是最快的。
 - **7B / 1000 卡**：TP1 PP1 DP1000，29.5 h，和手算下界一致。
-- `pytest -q` → `3 passed`；`day02_debug.py` 退出码 0，scan 正常输出。
+- `pytest -q` → `3 passed`；`debug.py` 退出码 0，scan 正常输出。
 
-## 为什么（Q1–Q7 要点卡，长版见 day02_answer.md）
+## 为什么（Q1–Q7 要点卡，长版见 answer.md）
 
 **Q1 16 字节与 FP16/BF16**
 

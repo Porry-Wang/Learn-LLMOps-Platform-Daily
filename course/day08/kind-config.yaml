@@ -18,7 +18,7 @@ nodes:
             node-labels: "topology.kubernetes.io/zone=rack-b"
 
 # 用法（Day 8）：
-#   kind create cluster --name llmops --config labs/w2/day08_kind/kind-config.yaml
+#   kind create cluster --name llmops --config course/day08/kind-config.yaml
 #   kubectl get nodes -L topology.kubernetes.io/zone
 #
 # 两个 worker 分属 rack-a / rack-b 是有意为之：
