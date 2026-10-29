@@ -59,9 +59,10 @@ s02-distributed/
 | `course/s01-capacity/` | S1 · Day — | 显存与算力三本账：TP/PP/DP/ZeRO/recompute | 完成 |
 | `course/s02-distributed/` | S2 · Day — | 分布式最小闭环：4 rank all-reduce + checkpoint 三段实验 | 完成 |
 | `course/s03-objects/` | S3 · Day 1 | 对象模型：六张表 + 四条不变量（`objects.py` 自检版）+ 两份实跑日志（happy path / 掉线重试） | 完成 |
+| `course/s04-config/` | S4 · Day 2 | 配置翻译链：五组字段 + 四层优先级 + RuntimeSpec + 掩码（`translate.py`）+ 两份实跑日志 | 完成 |
 | `course/s05-k8s-min/` | S5 · Day 3 | kind 本地集群：`kind-config.yaml` | **本月不跑**（10 天版把三类卡住降级为读文档 + 写表） |
 
-S4 及以后的学习材料目录（`s04-config/`、`s06-scheduler/`…）还没建，等排到再建，不预先占位；它们的状态记在下面的对照表里。
+S6 及以后的学习材料目录（`s06-scheduler/`…）还没建，等排到再建，不预先占位；它们的状态记在下面的对照表里。
 
 ### platform/ —— 按模块组织
 
@@ -72,10 +73,11 @@ platform/
 ├── design/                 设计文档：object-model.md（S3 六张表 / 状态机 / 四条不变量 / 事件目录）
 ├── src/porryllmops/
 │   ├── capacity.py         S1 三本账 + feasible_placements()
-│   ├── models.py           S3 六张表的形状与规矩（状态机、配置合并、content_hash）
+│   ├── config.py           S4 配置翻译链（五组字段 / 四层合并 / trace / RuntimeSpec / 掩码）
+│   ├── models.py           S3 六张表的形状与规矩（状态机、角色策略；模板与哈希转出 config.py）
 │   ├── store.py            S3 持久化（JSON 落盘、事件流水、乐观锁、幂等）
 │   ├── cli.py              S3 演示入口：submit / status / events / retry
-│   └── tests/              test_capacity.py · test_store.py · test_cli.py
+│   └── tests/              test_capacity.py · test_config.py · test_store.py · test_cli.py
 └── acceptance/             验收标准与极端测试用例（暂空）
 ```
 
@@ -91,8 +93,8 @@ platform/
 | --- | --- | --- | --- |
 | S1 容量与可行放置 · 已学 | `capacity.py` | `course/s01-capacity/` | 完成 |
 | S2 分布式最小闭环 · 已学 | 无（教学实验，验证 rank / collective / ckpt 语义） | `course/s02-distributed/` | 完成 |
-| S3 对象模型与存储 · **Day 1** | `models.py` `store.py` `cli.py` | `course/s03-objects/` + `design/object-model.md` | 完成：18 项测试通过、`objects.py` 六条断言自检通过、两份实跑日志、README/question/answer 齐 |
-| S4 配置翻译链与优先级 · **Day 2** | `config.py` | `course/s04-config/`（待建） | 半成品：`models.py::merge_config` 已做 4 层优先级 + `sources`，`test_store.py` 已断言，`cli.py submit` 会打印每个字段的「← 来源」；缺独立 `config.py`、五组字段 → RuntimeSpec 的翻译、私有变量掩码 |
+| S3 对象模型与存储 · **Day 1** | `models.py` `store.py` `cli.py` | `course/s03-objects/` + `design/object-model.md` | 完成：`objects.py` 六条断言 + `test_store.py` 12 条通过、两份实跑日志、README/question/answer 齐 |
+| S4 配置翻译链与优先级 · **Day 2** | `config.py` | `course/s04-config/` | 完成：16 项 `test_config.py` 通过（全仓 34 passed）、`translate.py` 四条断言通过、CLI 输出掩码 + 来源 |
 | S5 K8s 最小面与三类卡住 · **Day 3** | 无（读 + 记录，不落模块） | `course/s05-k8s-min/` | **降级**：本机没装 `kind` / `kubectl` / `helm`，10 天版不实跑；Day 3 的 P0 是「三类卡住」一张表（现象 / 看哪里 / 常见原因 / 平台该给什么提示） |
 | S6 准入 / 排队 / Gang · **Day 3** | `scheduler.py` | `course/s06-scheduler/`（待建） | 未开始 |
 | S7 rank 分配 / 拒绝原因 / top-3 · **Day 4** | `placement.py` | `course/s07-placement/`（待建） | 未开始 |

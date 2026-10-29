@@ -42,6 +42,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     __package__ = "porryllmops"
 
+from .config import mask_config
 from .models import (
     ROLE_COORDINATOR,
     ROLE_SIDECAR,
@@ -147,9 +148,11 @@ def build_parser() -> argparse.ArgumentParser:
 # ---------------------------------------------------------------------------
 
 def _print_config(cv: ConfigVersion) -> None:
+    # 私有变量在出口掩码：存储里是真值（执行要用），打印/接口/日志只给 ***。
+    shown = mask_config(cv.merged)
     print(f"  config {cv.id}（{len(cv.merged)} 个字段）")
-    for key in sorted(cv.merged):
-        print(f"    {key:<18} {str(cv.merged[key]):<22} ← {cv.sources.get(key, '?')}")
+    for key in sorted(shown):
+        print(f"    {key:<18} {str(shown[key]):<22} ← {cv.sources.get(key, '?')}")
 
 
 def _print_run(store: Store, run: Run) -> None:

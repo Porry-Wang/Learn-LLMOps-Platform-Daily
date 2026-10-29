@@ -1,0 +1,45 @@
+# S4 CLI 实跑（2026-10-29 · Day 2）：路径覆盖 + 私有变量掩码
+# 命令（三条，真实执行）：
+#   export PYTHONPATH=platform/src
+#   .venv/bin/python -m porryllmops.cli --db /tmp/s04_config.json \
+#       submit --task finetune-7b --set lr=1e-4 \
+#       --set data_path=oss://team-a/corpus-v3 --set hf_token=hf_real_value \
+#       --inject image_digest=sha256:9f2c --simulate ok --gpus 8
+#
+# 关注三件事：
+#   ① data_path 来自 run_override，而不是模板默认
+#   ② hf_token 在输出里是 *** —— 存储里仍是真值，否则训练连不上
+#   ③ image_digest 来自平台注入，优先级高于用户
+
+新建任务 task-0001  finetune-7b（模板 llm-ft-v3）
+run run-0001  state=pending  attempt=1
+  config cv-0001-7d6e6deb（9 个字段）
+    batch_size         32                     ← template
+    data_path          oss://team-a/corpus-v3 ← run_override
+    hf_token           ***                    ← run_override
+    image_digest       sha256:9f2c            ← platform_injected
+    lr                 0.0001                 ← run_override
+    max_steps          5000                   ← template
+    optimizer          adamw                  ← template
+    precision          bf16                   ← template
+    seq_len            2048                   ← template
+
+[simulate] 7/8 trainer 就位 → start_run_if_ready = False
+[simulate] 缺: [{'rank': 7, 'node': 'sh-a-gpu-037', 'state': 'pending'}]
+[simulate] 8/8 trainer 就位 → start_run_if_ready = True
+[simulate] ckpt art-0001 → s3://porry-ckpt/finetune-7b/run-0001/a1/step-1500
+
+run-0001  finetune-7b  succeeded  attempt=1  health=ok
+  config    cv-0001-7d6e6deb
+  三个成功  exit=0  ckpt=complete  loadable=True
+  可续跑    是
+  起止      2026-10-29T09:46:07Z / 2026-10-29T09:46:07Z
+  workers   10/10 running
+
+# 读法：
+# · 9 个字段 = 模板 6 个 + 本次 3 个（data_path / hf_token / image_digest）；
+#   内容哈希把这三个都算进去了，所以 cv id 和 S3 那次（7 个字段）不同。
+# · hf_token 打印成 ***，但 ConfigVersion.merged 里是真值——掩码在出口
+#   （cli.py::_print_config → config.mask_config），不在存储。
+# · 这里只演示「保存并运行」：create_task 是保存意图，create_run 才是运行；
+#   两者在 store 层是两个调用，失败时能分开表达。

@@ -1,0 +1,131 @@
+# S4 配置翻译链演示（2026-10-29 · Day 2 · 九图第 3–4 节）
+# 命令（仓库根目录）：
+#   .venv/bin/python course/s04-config/translate.py
+#
+# 用途：三张表 + RuntimeSpec 的原始证据。
+# 关注四件事：
+#   ① 四层优先级冲突时谁赢（第 2 段）
+#   ② 每个关键字段的「四问」答全（第 3 段）
+#   ③ init 里 export 的变量不进 start 的环境（第 5 段）
+#   ④ 私有变量只在出口掩码，执行时仍是真值（第 6 段）
+
+
+==============================================================================
+1) 五组字段：页面为什么长
+==============================================================================
+任务身份      6 个字段
+         全部：stage, name, task_type, description, scenario, tags
+         进容器：（不直接进容器）
+训练程序      9 个字段
+         全部：framework, config_file, git_repo, git_branch, git_commit, submodules, init_cmd, start_cmd, stop_cmd
+         进容器：framework, init_cmd, start_cmd
+训练输入      4 个字段
+         全部：base_model, tokenizer, dataset, data_path
+         进容器：data_path
+执行环境与资源  10 个字段
+         全部：image, image_digest, deps, env, app_group, pool, gpu_type, nodes, gpus_per_node, mounts
+         进容器：image, image_digest, env, nodes, gpus_per_node, mounts
+运行保障与观测   6 个字段
+         全部：compute_check, fault_tolerance, metrics, trace, notify, metrics_push
+         进容器：（不直接进容器）
+
+身份组和保障组决定校验、通知、采集策略，但不改变这次容器的形状。
+
+==============================================================================
+2) 四层优先级：冲突时谁赢
+==============================================================================
+字段              最终值                           来源
+--------------------------------------------------------------
+lr              0.0001                        run_override
+max_steps       8000                          task
+batch_size      32                            template
+data_path       oss://team-a/corpus-v3        run_override
+image_digest    sha256:9f2c                   platform_injected
+
+规则：template < task < run_override < platform_injected；
+      None 视为「这层没写」，不覆盖上层。
+
+==============================================================================
+3) 四问：一个字段怎么走完全程
+==============================================================================
+[data_path]  source=run_override  value=oss://team-a/corpus-v3
+  哪里设  训练输入 · 训练数据集（或自定义数据地址）
+  怎么存  ConfigVersion.merged['data_path']；未填则平台按 task 推导
+  怎么注入 环境变量 PORRY_DATA_PATH + 挂载 /data
+  哪里读  训练脚本自己从 env 读；平台只保证「给了」，不保证「用了」
+
+[ckpt_path]  source=derived  value=None
+  哪里设  执行环境 · 产出存储目录；未填则由 run_id / attempt 推导
+  怎么存  ConfigVersion.merged['ckpt_path']
+  怎么注入 环境变量 PORRY_CKPT_PATH + 挂载 /ckpt
+  哪里读  训练框架的 save_checkpoint；平台之后从这里采集 Artifact
+
+[tf_events_path]  source=derived  value=None
+  哪里设  运行保障 · TensorBoard 产出路径
+  怎么存  ConfigVersion.merged['tf_events_path']
+  怎么注入 环境变量 PORRY_TF_EVENTS_PATH（默认落在 ckpt 同目录）
+  哪里读  SummaryWriter / 框架日志目录；平台轮询该目录出曲线
+
+[image]  source=derived  value=None
+  哪里设  执行环境 · 镜像
+  怎么存  merged['image'] + merged['image_digest']（摘要单独存）
+  怎么注入 容器的 image 字段；有摘要时写成 repo@sha256:…
+  哪里读  容器运行时（kubelet / containerd）；训练代码不感知
+
+[start_cmd]  source=derived  value=None
+  哪里设  训练程序 · 启动命令
+  怎么存  merged['start_cmd']
+  怎么注入 独立的一次 `sh -c`；环境只含平台注入的变量
+  哪里读  torchrun / 训练入口
+
+可追踪字段共 6 个：ckpt_path, data_path, image, init_cmd, start_cmd, tf_events_path
+
+==============================================================================
+4) RuntimeSpec：容器拿到什么
+==============================================================================
+image     registry.local/porry/trainer:24.10@sha256:9f2c
+nodes×gpu 1 × 8 = world_size 8
+mounts
+  /data    ← oss://team-a/corpus-v3
+  /ckpt    ← s3://porry-ckpt/finetune-7b/run-0001/a1
+env
+  PORRY_ATTEMPT            1
+  PORRY_CKPT_PATH          s3://porry-ckpt/finetune-7b/run-0001/a1
+  PORRY_DATA_PATH          oss://team-a/corpus-v3
+  PORRY_RUN_ID             run-0001
+  PORRY_TASK_NAME          finetune-7b
+  PORRY_TF_EVENTS_PATH     s3://porry-ckpt/finetune-7b/run-0001/a1/tfevents
+  PORRY_WORLD_SIZE         8
+
+RANK / LOCAL_RANK 不在这里：那是 torchrun 在每个进程里设的，
+平台只负责 WORLD_SIZE 这类「整组共享」的变量。
+
+==============================================================================
+5) init 与 start 是两个独立进程
+==============================================================================
+init   sh -c 'export HTTP_PROXY=http://proxy:3128 && python prepare.py'
+start  sh -c 'torchrun --nproc_per_node=8 train.py'
+
+init 里 export 的 HTTP_PROXY 不会出现在 start 的环境里：
+两个 `sh -c` 各起一个进程，环境只来自平台注入。
+spec.env 里有 HTTP_PROXY 吗？False
+
+==============================================================================
+6) 私有变量：存储要真值，出口要掩码
+==============================================================================
+给页面 / 接口 / 日志看：
+  hf_token          ***
+  env.WANDB_API_KEY ***
+  env.NCCL_DEBUG    INFO
+
+容器启动时用的是存储里的真值（否则训练连不上任何服务）；
+掩码只发生在出口：打印、API 响应、事件 payload、复制任务。
+
+==============================================================================
+7) 内容哈希：改备注不产生新版本
+==============================================================================
+base            sha256:788550d56720cdba…
++ 备注          sha256:788550d56720cdba…  ← 同一个版本
+lr 1e-4 → 2e-4  sha256:b441e3c9f5c3aa21…  ← 新版本
+
+四条断言全部成立：最高层赢 / 四问答全 / export 不跨进程 / 掩码只在出口

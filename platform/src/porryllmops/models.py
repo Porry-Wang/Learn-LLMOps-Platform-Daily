@@ -26,11 +26,21 @@ toy 边界（讲报告时主动说）：
 
 from __future__ import annotations
 
-import hashlib
-import json
 from dataclasses import dataclass, field, fields
 from types import MappingProxyType
 from typing import Any, Dict, Mapping, Optional, Tuple
+
+# S4 起，模板 / 四层合并 / 内容哈希搬进 config.py 独立成模块；
+# 这里转出同名符号，store.py 与旧测试的导入路径保持不变。
+from .config import (
+    DEFAULT_TEMPLATE,
+    LAYERS,
+    NON_EXECUTION_KEYS,
+    TEMPLATES,
+    compute_content_hash,
+    merge_config,
+    normalize_for_hash,
+)
 
 __all__ = [
     # 状态与角色
@@ -133,78 +143,10 @@ CKPT_PARTIAL = "partial"    # 只有权重，没有优化器状态 / global step
 CKPT_COMPLETE = "complete"
 
 # ---------------------------------------------------------------------------
-# 配置合并与哈希
+# 配置合并与哈希 —— 实现已搬到 config.py（S4）
 # ---------------------------------------------------------------------------
-
-DEFAULT_TEMPLATE = "llm-ft-v3"
-
-# 平台预置基线。升级模板 = 改这里；历史 ConfigVersion 不受影响。
-TEMPLATES: Dict[str, Dict[str, Any]] = {
-    DEFAULT_TEMPLATE: {
-        "lr": 3e-4,
-        "batch_size": 32,
-        "max_steps": 5000,
-        "seq_len": 2048,
-        "optimizer": "adamw",
-        "precision": "bf16",
-    },
-}
-
-# 合并优先级从低到高；sources 里记的层级名。
-LAYERS: Tuple[str, ...] = ("template", "task", "run_override", "platform_injected")
-
-# 这些字段不影响执行，不参与内容哈希（改备注不该产生新版本）。
-NON_EXECUTION_KEYS = frozenset(
-    {"name", "display_name", "description", "comment", "notes", "tags"}
-)
-
-
-def merge_config(
-    template: Mapping[str, Any],
-    task_defaults: Mapping[str, Any],
-    overrides: Mapping[str, Any],
-    injected: Mapping[str, Any],
-) -> Tuple[Dict[str, Any], Dict[str, str]]:
-    """四层叠加，返回（最终生效值, 每个字段的来源层）。
-
-    空值（None）视为「这层没写」，不覆盖上层。
-    例：模板 lr=3e-4 + 本次覆盖 lr=1e-4 → merged["lr"]=1e-4，
-    sources["lr"]="run_override"。
-    """
-    merged: Dict[str, Any] = {}
-    sources: Dict[str, str] = {}
-
-    for layer_name, layer in zip(
-        LAYERS, (template, task_defaults, overrides, injected)
-    ):
-        for key, value in layer.items():
-            if value is None:
-                continue
-            merged[key] = value
-            sources[key] = layer_name
-
-    return merged, sources
-
-
-def normalize_for_hash(merged: Mapping[str, Any]) -> Dict[str, Any]:
-    """只保留「影响执行」的字段：去元信息、去空值。"""
-    return {
-        key: value
-        for key, value in merged.items()
-        if key not in NON_EXECUTION_KEYS and value is not None
-    }
-
-
-def compute_content_hash(merged: Mapping[str, Any]) -> str:
-    """稳定哈希：同一份执行配置永远得到同一个值。
-
-    created_at 之类的时间字段不进 merged，自然不会进哈希。
-    """
-    payload = json.dumps(
-        normalize_for_hash(merged), sort_keys=True, separators=(",", ":"),
-        ensure_ascii=False,
-    )
-    return "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
+# 这里不再保留副本：两套实现必然分叉。需要看合并规则、模板、
+# 内容哈希的定义，读 config.py；本模块只负责「转出」。
 
 
 # ---------------------------------------------------------------------------
