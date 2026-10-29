@@ -1,0 +1,49 @@
+/Users/porry/Documents/Qoder/2026-09-20/b4f0067e/llmops-platform/.venv/lib/python3.9/site-packages/torch/_subclasses/functional_tensor.py:279: UserWarning: Failed to initialize NumPy: No module named 'numpy' (Triggered internally at /Users/runner/work/pytorch/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:81.)
+  cpu = _conversion_method_template(device=torch.device("cpu"))
+ckpt 临时目录：/var/folders/xp/w4ztyfnn2kz8qhhdmqd56nh00000gn/T/day03_ckpt_ypf801wo
+模型 config：{'in_dim': 16, 'hidden': 64, 'out_dim': 1}   LR=0.05   BATCH=32
+
+=== 实验 1：ckpt 里到底有什么 ===
+文件：/var/folders/xp/w4ztyfnn2kz8qhhdmqd56nh00000gn/T/day03_ckpt_ypf801wo/ckpt-step-0000030-full.pt  大小：70.5 KB
+顶层键：['model', 'optimizer', 'step', 'config']
+
+[model] 张量数=6  参数总数=5313
+  net.0.weight           shape=(64, 16) dtype=torch.float32
+  net.0.bias             shape=(64,) dtype=torch.float32
+  net.2.weight           shape=(64, 64) dtype=torch.float32
+  ...（只列前 3 个）
+
+[optimizer] 顶层键：['state', 'param_groups']
+  state 的 key 是参数序号，例如 0；里面是：
+    step         shape=()
+    exp_avg      shape=(64, 16)
+    exp_avg_sq   shape=(64, 16)
+  param_groups[0]（超参本身也要存）：{'lr': 0.05, 'betas': (0.9, 0.999), 'eps': 1e-08, 'weight_decay': 0, 'amsgrad': False, 'maximize': False, 'foreach': None, 'capturable': False, 'differentiable': False, 'fused': None, 'decoupled_weight_decay': False}
+
+[step]    30  （int，决定 lr 调度和横轴）
+[config]  {'in_dim': 16, 'hidden': 64, 'out_dim': 1}  （决定模型的张量骨架）
+
+=== 实验 2：续训后的前 8 步 ===
+ step     对照 loss     A组 loss     A组Δθ     C组 loss     C组Δθ
+   31    0.388313    0.388313    0.293    0.388313    2.516
+   32    0.174320    0.174320    0.291    6.844686    1.795
+   33    0.358832    0.358832    0.307    1.253297    1.510
+   34    0.257866    0.257866    0.299    2.022305    1.197
+   35    0.384361    0.384361    0.268    3.210119    0.999
+   36    0.219915    0.219915    0.243    2.753885    1.036
+   37    0.453190    0.453190    0.245    1.587487    1.025
+   38    0.154990    0.154990    0.226    0.705774    0.900
+
+A 组与对照组的最大 loss 偏差：0.00e+00
+C 组与对照组的最大 loss 偏差：6.67e+00
+A 组第一步 Δθ = 0.293，对照第一步 Δθ = 0.293
+C 组第一步 Δθ = 2.516
+
+=== 实验 3：config 变了，同一个 state_dict 就装不进去 ===
+原 config hidden=64，改成 hidden=128 后加载：
+  Error(s) in loading state_dict for TinyMLP:
+  	size mismatch for net.0.weight: copying a param with shape torch.Size([64, 16]) from checkpoint, the shape in current model is torch.Size([128, 16]).
+  	size mismatch for net.0.bias: copying a param with shape torch.Size([64]) from checkpoint, the shape in current model is torch.Size([128]).
+
+文件留在：/var/folders/xp/w4ztyfnn2kz8qhhdmqd56nh00000gn/T/day03_ckpt_ypf801wo
+想手动看：>>> ckpt = torch.load('...'); print(ckpt['optimizer'].keys())

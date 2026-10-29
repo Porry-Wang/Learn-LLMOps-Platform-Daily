@@ -1,0 +1,54 @@
+================================================================
+段 1 · 模拟 4 个 rank 的 all-reduce（可断点单步）
+================================================================
+  rank 0 手里：[1.0, 1.0, 1.0, 1.0]
+  rank 1 手里：[2.0, 2.0, 2.0, 2.0]
+  rank 2 手里：[3.0, 3.0, 3.0, 3.0]
+  rank 3 手里：[4.0, 4.0, 4.0, 4.0]
+  加上 rank 1 之后 total = [3.0, 3.0, 3.0, 3.0]
+  加上 rank 2 之后 total = [6.0, 6.0, 6.0, 6.0]
+  加上 rank 3 之后 total = [10.0, 10.0, 10.0, 10.0]
+
+  [rank 0/4] before=[1.0, 1.0, 1.0, 1.0] after=[10.0, 10.0, 10.0, 10.0]
+  [rank 1/4] before=[2.0, 2.0, 2.0, 2.0] after=[10.0, 10.0, 10.0, 10.0]
+  [rank 2/4] before=[3.0, 3.0, 3.0, 3.0] after=[10.0, 10.0, 10.0, 10.0]
+  [rank 3/4] before=[4.0, 4.0, 4.0, 4.0] after=[10.0, 10.0, 10.0, 10.0]
+
+  DDP 用的平均梯度 = [2.5, 2.5, 2.5, 2.5]   （10 / 4 = 2.5）
+  4 个 rank 用同一份平均梯度更新 → 4 份模型不会分叉，这就是 DP。
+
+================================================================
+段 2 · 真调用 dist，world_size=1（看清 API 与环境变量）
+================================================================
+  自己注入的环境变量：
+    RANK             = 0
+    LOCAL_RANK       = 0
+    WORLD_SIZE       = 1
+    MASTER_ADDR      = localhost
+    MASTER_PORT      = 29517
+
+  init_process_group 返回了：dist.get_rank()=0 dist.get_world_size()=1
+  all_reduce 前 [3.0, 3.0, 3.0, 3.0] → 后 [3.0, 3.0, 3.0, 3.0]
+  没变。因为组里只有一个人，没人可加——
+  这正说明段 1 里那个「加上其他 rank」的动作，是真由通信完成的。
+  destroy_process_group 完成
+
+================================================================
+段 3 · 想看真的 4 个进程互相等，跑这条（不在本脚本里执行）
+================================================================
+
+  cd /Users/porry/Documents/Qoder/2026-09-20/b4f0067e/llmops-platform/course/day03
+  ../../.venv/bin/python torchrun_local.py --standalone --nproc_per_node=4 dist.py
+
+  预期 4 行，每行 after 都是 [10.0, 10.0, 10.0, 10.0]。
+
+  想给 4 进程版本打断点：PyCharm → Settings → Build, Execution, Deployment
+  → Python Debugger → 勾上 "Attach to subprocess automatically while debugging"，
+  再建一个 Python run config：
+      script path     = /Users/porry/Documents/Qoder/2026-09-20/b4f0067e/llmops-platform/course/day03/torchrun_local.py
+      parameters      = --standalone --nproc_per_node=4 dist.py
+      working dir     = /Users/porry/Documents/Qoder/2026-09-20/b4f0067e/llmops-platform/course/day03
+      interpreter     = 项目 .venv
+  然后 Debug 那个 config。子进程能否停下取决于 PyCharm 版本，
+  停不下来就退回段 1 看语义、用打印看 4 进程结果。
+
