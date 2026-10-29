@@ -5,7 +5,7 @@ macOS 上没有 NCCL，只能用 gloo 后端在 CPU 上模拟多 rank。
 
 运行方式（务必先 source .venv/bin/activate）：
 
-    cd course/day00
+    cd course/p0-environment
     MASTER_ADDR=127.0.0.1 MASTER_PORT=29500 \
     torchrun --standalone --nproc_per_node=4 smoke_gloo.py
 

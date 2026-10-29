@@ -356,24 +356,24 @@ D1.5 我想验证“事件驱动是不是更省”，于是写了 edge 版：只
 cd ~/Documents/Qoder/2026-09-20/b4f0067e/llmops-platform
 
 # 第一组：巡视版（保持 pass 不动）
-python3 course/day01/reconcile_loop.py --disturbance 5 | tee course/day01/logs/exp4_keep_looking.log
+python3 course/p1-reconcile/reconcile_loop.py --disturbance 5 | tee course/p1-reconcile/logs/exp4_keep_looking.log
 
 # 第二组：break 版——先把第 118 行 pass 改成 break，再跑
-python3 course/day01/reconcile_loop.py --disturbance 5 | tee course/day01/logs/exp4_quit.log
+python3 course/p1-reconcile/reconcile_loop.py --disturbance 5 | tee course/p1-reconcile/logs/exp4_quit.log
 
 # 改回 pass（D1.5 还要用满 30 轮的版本）
 
 # 第三组：D1.5 三组边缘触发参数
-python3 course/day01/reconcile_loop.py --edge-triggered --drop-event 3  --fail-rate 0.5 | tee course/day01/logs/exp5_drop3_fail05.log
-python3 course/day01/reconcile_loop.py --edge-triggered --drop-event 10 --fail-rate 0.3 | tee course/day01/logs/exp5_drop10.log
-python3 course/day01/reconcile_loop.py --edge-triggered --drop-event 30 --fail-rate 0.3 | tee course/day01/logs/exp5_drop30_control.log
+python3 course/p1-reconcile/reconcile_loop.py --edge-triggered --drop-event 3  --fail-rate 0.5 | tee course/p1-reconcile/logs/exp5_drop3_fail05.log
+python3 course/p1-reconcile/reconcile_loop.py --edge-triggered --drop-event 10 --fail-rate 0.3 | tee course/p1-reconcile/logs/exp5_drop10.log
+python3 course/p1-reconcile/reconcile_loop.py --edge-triggered --drop-event 30 --fail-rate 0.3 | tee course/p1-reconcile/logs/exp5_drop30_control.log
 ```
 
-`| tee 文件名` 是“输出既显示在屏幕上、又存进文件”。跑完 `ls course/day01/logs/` 应看到 5 个 `.log`。第三组是对照组：丢事件发生得很晚时，系统前面一直正常——edge 不是永远坏，是坏的时候你看不见。
+`| tee 文件名` 是“输出既显示在屏幕上、又存进文件”。跑完 `ls course/p1-reconcile/logs/` 应看到 5 个 `.log`。第三组是对照组：丢事件发生得很晚时，系统前面一直正常——edge 不是永远坏，是坏的时候你看不见。
 
 ### A2｜当天 `README.md` 的写作模板
 
-`course/dayNN/README.md` 是当天实验记录，不需要文采，按五个固定问题填，每个问题两三段：
+`course/sNN-主题/README.md` 是当次 session 的实验记录，不需要文采，按五个固定问题填，每个问题两三段：
 
 ```
 ## 做了什么          ← 写了/跑了什么，做了哪几组实验

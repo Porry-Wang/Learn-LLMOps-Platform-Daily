@@ -15,8 +15,8 @@ Day 2 · 显存与算力账本计算器（完整阅读版）
 
 配套文件：
   · debug.py              把 CLI 参数写成 Python 用例，方便断点单步
-  · course/day02/README.md         三本账的完整推导与案例
-  · course/day02/question.md 闭卷题库 + 标准答案
+  · course/s01-capacity/README.md         三本账的完整推导与案例
+  · course/s01-capacity/question.md 闭卷题库 + 标准答案
 
 五个命门（闭卷只默这五条，不默代码）：
   ① 16 = 2+2+4+4+4 各对应什么
@@ -368,7 +368,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 if __name__ == "__main__":
     raise SystemExit(main())
 
-# 三个验证案例（逐条跑，把输出表贴进 course/day02/README.md）：
+# 三个验证案例（逐条跑，把输出表贴进 course/s01-capacity/README.md）：
 #
 # 案例1  7B / s=4096 / b=1 / TP1 PP1 DP8 / ZeRO-1 / H100
 #   python3 capacity.py --params 7 --layers 32 --hidden 4096 --heads 32 \

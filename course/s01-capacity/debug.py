@@ -13,7 +13,7 @@ Day 2 · 调试入口：把命令行参数写成 Python 用例
   3) 右键本文件 → Debug 'debug'（不需要配置命令行参数）；
   4) 想换案例，改 CASES / SCAN_CASES 里的数字即可；
   5) 想只跑一个单配置案例，把 ONLY 改成对应 case 的 name；
-  6) 终端也可以直接跑：.venv/bin/python course/day02/debug.py
+  6) 终端也可以直接跑：.venv/bin/python course/s01-capacity/debug.py
 
 两个开关：
   RUN_CASES=True  跑单配置案例（三本账明细）

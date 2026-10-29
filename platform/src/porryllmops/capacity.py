@@ -101,7 +101,7 @@ class Placement:
 
 
 # ---------------------------------------------------------------------------
-# 三本账（与 course/day02/capacity.py 同一套公式）
+# 三本账（与 course/s01-capacity/capacity.py 同一套公式）
 # ---------------------------------------------------------------------------
 
 def per_gpu_model_state_bytes(params_b: float, zero: int, tp: int, pp: int, dp: int) -> float:
