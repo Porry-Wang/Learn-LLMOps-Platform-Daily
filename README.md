@@ -21,22 +21,24 @@ platform/     产品线：PorryLLMOps MVP 的设计、源码与验收
 
 ### course/ —— 按 session 组织
 
-目录名只有两种形态，看名字就知道它算不算 20 个 session 之一：
+目录名只有两种形态，看名字就知道它算不算排期单元：
 
 ```
-pre-environment/    pre- 前缀 = 前置，不带编号，不占 20 个 session 的额度
+pre-environment/    pre- 前缀 = 前置，不带编号，不占日程额度
 pre-reconcile/
-s01-capacity/       s 前缀 + 两位数字 = session 验收单元，S1…S20，和计划文档的 S 号一一对应
+s01-capacity/       s 前缀 + 两位数字 = 验收单元，S1…S20，和计划文档的 S 号一一对应
 s02-distributed/
 ```
 
-前置和 session 的**判据只有一条**：2.0 §5.3 那张日历表里排了日期的是 `s`，没排日期的是前置。
-S1 之所以是 `s` 而不是前置，是因为 2.0 给它派了「打包 + 验收」的活（`capacity.py` 进平台、写测试），
-不只是读一遍笔记。用 Git 也能验证：`2fc31de`（10-20）是前置，`9fb538e`（10-23，2.0 生效日）才是 S1。
+前置和 session 的**判据只有一条**：计划文档 §5.5 那张「Day ↔ 原 S 号 ↔ 目录」对照表里排了 Day 的是 `s`，
+没排的是前置。S1 之所以是 `s` 而不是前置，是因为计划给它派了「打包 + 验收」的活（`capacity.py` 进平台、写测试），
+不只是读一遍笔记。用 Git 也能验证：`2fc31de`（10-20）是前置，`9fb538e`（10-23）才是 S1。
 
-> 1.0 计划用的是「第 N 天」编号（D1 Reconcile、D2 容量、D3 分布式、D8 kind）。2.0 把单位换成了
-> session，两套编号不同源（D2→S1、D3→S2、D8→S5），且学习进度已和日历脱钩，所以仓库只用 session 号。
-> **D 号只活在 Obsidian 的资料库和 Git 历史里，不再进目录名。**
+> **编号有三套，只有目录名这套是稳定的。** 1.0 计划用「第 N 天」（D1 Reconcile、D2 容量、D3 分布式、D8 kind）；
+> 2.0 的 26 天版用 session 号（S1…S20）；2026-10-29 起 2.0 重写成 **10 天冲刺版**，用 Day 1…Day 10
+> （Day 1 = 10-29 → Day 10 = 11-07，缓冲到 11-17）。D 号和 Day 号都只活在 Obsidian 计划文档里，
+> **仓库目录一律沿用 S 号不改名**——这是第三次编号变更，不再动。换算看计划文档 §5.5，例如
+> Day 1 = S3 = `s03-objects/`，Day 3 = S5 + S6，Day 8 = S12 + S13。
 
 每个 session 目录里是固定的四件套（有则放，没有不占位）：
 
@@ -54,11 +56,12 @@ S1 之所以是 `s` 而不是前置，是因为 2.0 给它派了「打包 + 验�
 | --- | --- | --- | --- |
 | `course/pre-environment/` | 前置 | 环境冒烟：`smoke_gloo.py`（无 GPU，用 gloo 后端） | 完成 |
 | `course/pre-reconcile/` | 前置 | Reconcile Loop：声明式、level vs edge、幂等收敛 | 完成（含 5 份对照实验日志） |
-| `course/s01-capacity/` | S1 | 显存与算力三本账：TP/PP/DP/ZeRO/recompute | 完成 |
-| `course/s02-distributed/` | S2 | 分布式最小闭环：4 rank all-reduce + checkpoint 三段实验 | 完成 |
-| `course/s05-k8s-min/` | S5 | kind 本地集群：`kind-config.yaml` | 配置就绪（只有一个 yaml，尚未跑过） |
+| `course/s01-capacity/` | S1 · Day — | 显存与算力三本账：TP/PP/DP/ZeRO/recompute | 完成 |
+| `course/s02-distributed/` | S2 · Day — | 分布式最小闭环：4 rank all-reduce + checkpoint 三段实验 | 完成 |
+| `course/s03-objects/` | S3 · Day 1 | 对象模型：六张表 + 四条不变量（`objects.py` 自检版）+ 两份实跑日志（happy path / 掉线重试） | 完成 |
+| `course/s05-k8s-min/` | S5 · Day 3 | kind 本地集群：`kind-config.yaml` | **本月不跑**（10 天版把三类卡住降级为读文档 + 写表） |
 
-S3 之后的学习材料目录（`s03-objects/`、`s04-config/`）还没建，等排到再建，不预先占位；它们的状态记在下面的对照表里。
+S4 及以后的学习材料目录（`s04-config/`、`s06-scheduler/`…）还没建，等排到再建，不预先占位；它们的状态记在下面的对照表里。
 
 ### platform/ —— 按模块组织
 
@@ -66,7 +69,7 @@ S3 之后的学习材料目录（`s03-objects/`、`s04-config/`）还没建，�
 
 ```
 platform/
-├── design/                 设计文档（暂空，S1/S3 的设计说明目前写在模块 docstring 里）
+├── design/                 设计文档：object-model.md（S3 六张表 / 状态机 / 四条不变量 / 事件目录）
 ├── src/porryllmops/
 │   ├── capacity.py         S1 三本账 + feasible_placements()
 │   ├── models.py           S3 六张表的形状与规矩（状态机、配置合并、content_hash）
@@ -82,17 +85,26 @@ platform/
 
 两条线用同一个 session 号，所以对照关系不需要翻译：**`course/sNN-xxx/` 是学习记录，`platform/src/porryllmops/*.py` 是同一 session 的产品侧产出**。
 
-| Session | 平台模块 | 学习材料 | 状态 |
-| --- | --- | --- | --- |
-| S1 容量与可行放置 | `capacity.py` | `course/s01-capacity/` | 完成 |
-| S2 分布式最小闭环 | 无（教学实验，验证 rank / collective / ckpt 语义） | `course/s02-distributed/` | 完成 |
-| S3 对象模型与存储 | `models.py` `store.py` `cli.py` | `course/s03-objects/`（待建） | 代码完成，18 项测试通过；`design/object-model.md` 未写 |
-| S4 配置翻译链与优先级 | `config.py` | `course/s04-config/`（待建） | 半成品：`models.py::merge_config` 已做 4 层优先级 + `sources`，`test_store.py` 已断言，`cli.py submit` 会打印每个字段的「← 来源」；缺独立 `config.py`、五组字段 → RuntimeSpec 的翻译、私有变量掩码 |
-| S5 K8s 最小面与三类卡住 | 无（读 + 记录，不落模块） | `course/s05-k8s-min/` | 未开始：只有 `kind-config.yaml`，`kind` / `kubectl` 本机尚未安装，缺 Pod 生命周期观察记录 |
-| S6 准入 / 排队 / Gang | `scheduler.py` | `course/s06-scheduler/`（待建） | 未开始 |
-| S7 rank 分配 / 拒绝原因 / top-3 | `placement.py` | `course/s07-placement/`（待建） | 未开始 |
+下表第一列同时标出 10 天冲刺版的 Day 号（换算依据是计划文档 §5.5）：
 
-前置 `pre-environment` / `pre-reconcile` 不在表里：它们是 2.0 §3.3 列的「保留（已完成）」，不占 20 个 session 的额度。
+| Session · Day | 平台模块 | 学习材料 | 状态 |
+| --- | --- | --- | --- |
+| S1 容量与可行放置 · 已学 | `capacity.py` | `course/s01-capacity/` | 完成 |
+| S2 分布式最小闭环 · 已学 | 无（教学实验，验证 rank / collective / ckpt 语义） | `course/s02-distributed/` | 完成 |
+| S3 对象模型与存储 · **Day 1** | `models.py` `store.py` `cli.py` | `course/s03-objects/` + `design/object-model.md` | 完成：18 项测试通过、`objects.py` 六条断言自检通过、两份实跑日志、README/question/answer 齐 |
+| S4 配置翻译链与优先级 · **Day 2** | `config.py` | `course/s04-config/`（待建） | 半成品：`models.py::merge_config` 已做 4 层优先级 + `sources`，`test_store.py` 已断言，`cli.py submit` 会打印每个字段的「← 来源」；缺独立 `config.py`、五组字段 → RuntimeSpec 的翻译、私有变量掩码 |
+| S5 K8s 最小面与三类卡住 · **Day 3** | 无（读 + 记录，不落模块） | `course/s05-k8s-min/` | **降级**：本机没装 `kind` / `kubectl` / `helm`，10 天版不实跑；Day 3 的 P0 是「三类卡住」一张表（现象 / 看哪里 / 常见原因 / 平台该给什么提示） |
+| S6 准入 / 排队 / Gang · **Day 3** | `scheduler.py` | `course/s06-scheduler/`（待建） | 未开始 |
+| S7 rank 分配 / 拒绝原因 / top-3 · **Day 4** | `placement.py` | `course/s07-placement/`（待建） | 未开始 |
+| S8 生命周期与启动执行 · **Day 5** | `lifecycle.py` `runtime/fake.py` | `course/s08-lifecycle/`（待建） | 未开始 |
+| S9 观测八层与 triage · **Day 6** | `observability/{events,metrics,triage}.py` | `course/s09-observability/`（待建） | 未开始 |
+| S10–S11 crash / hang 恢复 · **Day 7** | `recovery.py` | `course/s10-recovery/`（待建） | 未开始 |
+| S12–S13 热更新 + 产物链 · **Day 8** | `hotupdate.py` `artifacts.py` | `course/s12-hotupdate/` 或 `s13-artifacts/`（二选一） | 未开始 |
+| S14 / S16 / S17 设计文档与走查 · **Day 9** | `design/design.md` + `acceptance/` | 无新目录 | 未开始 |
+| S19 / S20 面试包与 mock · **Day 10** | `acceptance/interview-pack.md` `mock-1.md` | 无新目录 | 未开始 |
+
+前置 `pre-environment` / `pre-reconcile` 不在表里：它们是计划 §3.3 列的「保留（已完成）」，不占日程额度。
+S15（failure path 集成演练）、S18（README 大改 + 简历 bullet）、S20 的第二次 mock 都**挪到缓冲期**（11-08 → 11-17）。
 
 S2 和 S5 故意不落平台模块：前者的产出是「rank / collective / ckpt 的语义验证过了」，后者的产出是「看清了 K8s 的 Pod 生命周期和三类卡住长什么样」——都不是「平台多了一个功能」。
 

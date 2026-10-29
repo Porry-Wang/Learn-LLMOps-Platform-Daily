@@ -1,0 +1,63 @@
+# S3 第二次演示实跑（2026-10-29）：trainer 掉线 → failed → retry → attempt 2
+# 命令（三条，全部真实执行，输出原样贴在下面）：
+#   export PYTHONPATH=platform/src
+#   .venv/bin/python -m porryllmops.cli --db /tmp/s03_retry.json \
+#       submit --task broken-7b --simulate trainer-lost --gpus 8
+#   .venv/bin/python -m porryllmops.cli --db /tmp/s03_retry.json retry run-0001
+#   .venv/bin/python -m porryllmops.cli --db /tmp/s03_retry.json events run-0001
+#   .venv/bin/python -m porryllmops.cli --db /tmp/s03_retry.json events | tail -3
+#
+# 用途：Day 1（九图第 1–2 节）「事件流水」这一关的原始证据。
+# 关注三件事：① 一次 submit 产生多少行事件 ② corr_id 怎么把 worker 和 run 串起来
+#           ③ retry 之后 attempt 变、config_version_id 不变、旧 worker 变 superseded
+
+=== 1) submit --simulate trainer-lost ===
+
+[simulate] 缺: [{'rank': 7, 'node': 'sh-a-gpu-037', 'state': 'pending'}]
+[simulate] 8/8 trainer 就位 → start_run_if_ready = True
+[simulate] trainer rank 7 掉线 → fail_run；run 状态 failed
+[simulate] 下一步：retry run-0001
+
+run-0001  broken-7b  failed  attempt=1  health=ok
+  config    cv-0001-9fbdfff5
+  三个成功  exit=None  ckpt=none  loadable=None
+  可续跑    否
+  起止      2026-10-29T09:06:17Z / 2026-10-29T09:06:17Z
+  workers   9/10 running
+  缺 trainer rank 7@sh-a-gpu-037(lost)
+
+=== 2) retry run-0001 ===
+
+run-0001 → attempt 2  state=pending  config=cv-0001-9fbdfff5（配置不变）
+提示：status 看 worker 是否重建；worker 要按新 attempt 重新 add
+
+=== 3) events run-0001（只筛 entity_id=run-0001 的行）===
+
+2026-10-29T09:06:17Z  run.created      run-0001                 {"config_version_id": "cv-0001-9fbdfff5", "overrides": {}}
+2026-10-29T09:06:17Z  run.scheduling   run-0001                 {"from": "pending", "to": "scheduling"}
+2026-10-29T09:06:17Z  run.running      run-0001                 {"from": "scheduling", "to": "running"}
+2026-10-29T09:06:17Z  run.failed       run-0001                 [c-w-run-0001-a1-r7] {"from": "running", "missing_rank": 7, "reason": "gang_incomplete"}
+2026-10-29T09:06:17Z  run.retried      run-0001                 {"attempt": 2, "config_version_id": "cv-0001-9fbdfff5"}
+
+=== 4) events | tail -3（不筛，能看到 worker 那一行）===
+
+2026-10-29T09:06:17Z  run.running      run-0001                 {"from": "scheduling", "to": "running"}
+2026-10-29T09:06:17Z  worker.lost      w-run-0001-a1-r7         [c-w-run-0001-a1-r7] {"node": "sh-a-gpu-037", "rank": 7, "role": "trainer"}
+2026-10-29T09:06:17Z  run.failed       run-0001                 [c-w-run-0001-a1-r7] {"from": "running", "missing_rank": 7, "reason": "gang_incomplete"}
+2026-10-29T09:06:17Z  run.retried      run-0001                 {"attempt": 2, "config_version_id": "cv-0001-9fbdfff5"}
+
+=== 5) retry 之后落盘的原始计数（直接读 /tmp/s03_retry.json）===
+
+workers by (attempt,state): {(1, 'superseded'): 9, (1, 'lost'): 1}
+runs: {'run-0001': (attempt=2, state='pending', rev=4)}
+events: 28
+
+# 读法：
+# · 28 行事件里只有 5 行的 entity_id 是 run-0001，其余 23 行属于 task / config / worker
+#   ——所以「按 Run 查历史」和「查全部流水」是两个不同的查询，Event 表用 (entity_type, entity_id) 才能支持。
+# · worker.lost 和 run.failed 的 corr_id 都是 c-w-run-0001-a1-r7（= "c-" + worker.id，见 store.py:530），
+#   这两行是同一条因果链；run.retried 没有 corr_id，因为它是人（CLI）新发起的动作，不是那次掉线的延续。
+# · retry 之后 attempt 从 1 变 2、config_version_id 一个字没变、9 个还活着的 attempt-1 worker 变 superseded、
+#   掉线那个仍然是 lost（终态事实不被改写），run.rev 从 3 涨到 4。
+# · attempt 2 的 worker 一个都还没有：store.retry_run() 只负责把 Run 打回 pending，
+#   重建 worker 是运行时（真实系统里是控制器 / kubelet）的活。

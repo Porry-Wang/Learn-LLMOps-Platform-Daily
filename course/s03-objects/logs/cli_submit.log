@@ -1,0 +1,47 @@
+# S3 第一次演示实跑（2026-10-29）
+# 命令：
+#   export PYTHONPATH=platform/src
+#   .venv/bin/python -m porryllmops.cli --db /tmp/s03_anchor.json \
+#       submit --task finetune-7b --set lr=1e-4 --inject image_digest=sha256:9f2c --simulate ok
+
+新建任务 task-0001  finetune-7b（模板 llm-ft-v3）
+run run-0001  state=pending  attempt=1
+  config cv-0001-662f6354（7 个字段）
+    batch_size         32                     ← template
+    image_digest       sha256:9f2c            ← platform_injected
+    lr                 0.0001                 ← run_override
+    max_steps          5000                   ← template
+    optimizer          adamw                  ← template
+    precision          bf16                   ← template
+    seq_len            2048                   ← template
+
+[simulate] 7/8 trainer 就位 → start_run_if_ready = False
+[simulate] 缺: [{'rank': 7, 'node': 'sh-a-gpu-037', 'state': 'pending'}]
+[simulate] 8/8 trainer 就位 → start_run_if_ready = True
+[simulate] ckpt art-0001 → s3://porry-ckpt/finetune-7b/run-0001/a1/step-1500
+
+run-0001  finetune-7b  succeeded  attempt=1  health=ok
+  config    cv-0001-662f6354
+  三个成功  exit=0  ckpt=complete  loadable=True
+  可续跑    是
+  起止      2026-10-29T07:46:11Z / 2026-10-29T07:46:11Z
+  workers   10/10 running
+
+=== 落盘后的 run-0001（JSON 原始行）===
+{
+  "attempt": 1,
+  "ckpt_state": "complete",
+  "config_version_id": "cv-0001-662f6354",
+  "created_at": "2026-10-29T07:46:11Z",
+  "ended_at": "2026-10-29T07:46:11Z",
+  "exit_code": 0,
+  "health": "ok",
+  "id": "run-0001",
+  "idempotency_key": null,
+  "loadable": true,
+  "rev": 3,
+  "started_at": "2026-10-29T07:46:11Z",
+  "state": "succeeded",
+  "task_id": "task-0001"
+}
+表行数: {'artifacts': 1, 'config_versions': 1, 'idem': 0, 'runs': 1, 'seq': 4, 'tasks': 1, 'workers': 10}
