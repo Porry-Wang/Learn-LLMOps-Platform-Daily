@@ -17,9 +17,13 @@ nodes:
           kubeletExtraArgs:
             node-labels: "topology.kubernetes.io/zone=rack-b"
 
-# 用法（Day 8）：
-#   kind create cluster --name llmops --config course/s05-k8s-min/kind-config.yaml
+# 用法（S5；对应计划 2.0 §5.2 Preflight 与 §5.4 的 S5 卡）：
+#   kind create cluster --name porry --config course/s05-k8s-min/kind-config.yaml
 #   kubectl get nodes -L topology.kubernetes.io/zone
 #
-# 两个 worker 分属 rack-a / rack-b 是有意为之：
-#   Day 10 的 Volcano 故障域打散、Day 20 演练 5 的节点级故障都要用它。
+# 节点形状是个待定项，别在这里纠结：这份文件是 1.0 时代写的，1 控制面 + 2 worker，
+# 两个 worker 分别打 rack-a / rack-b 标签，当时为了 D10 的 Volcano 故障域打散和
+# D20 演练 5 的节点级故障。2.0 把这两项都砍了（§3.2：D8 降级为「1cp + 1w，只看
+# Pod 生命周期」，D10 → toy gang，D20 → 只留 crash / hang），所以按计划应该删掉
+# 第二个 worker 省内存。留着也没坏处——S7 的 placement 若想演示「拓扑相关的拒绝原因」
+# 正好用它。S5 的目标（看清 Pod 生命周期和三类卡住）两种形状都能达成。
