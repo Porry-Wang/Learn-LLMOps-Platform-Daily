@@ -21,14 +21,18 @@ platform/     产品线：PorryLLMOps MVP 的设计、源码与验收
 
 ### course/ —— 按 session 组织
 
-目录名就是学习计划 2.0 里的 session 号，一条规矩：
+目录名只有两种形态，看名字就知道它算不算 20 个 session 之一：
 
 ```
-p0-environment/     p 前缀 = 前置，2.0 之前已完成，不占 20 个 session 的额度
-p1-reconcile/
-s01-capacity/       s 前缀 = session 验收单元，S1…S20，和计划文档的 S 号一一对应
+pre-environment/    pre- 前缀 = 前置，不带编号，不占 20 个 session 的额度
+pre-reconcile/
+s01-capacity/       s 前缀 + 两位数字 = session 验收单元，S1…S20，和计划文档的 S 号一一对应
 s02-distributed/
 ```
+
+前置和 session 的**判据只有一条**：2.0 §5.3 那张日历表里排了日期的是 `s`，没排日期的是前置。
+S1 之所以是 `s` 而不是前置，是因为 2.0 给它派了「打包 + 验收」的活（`capacity.py` 进平台、写测试），
+不只是读一遍笔记。用 Git 也能验证：`2fc31de`（10-20）是前置，`9fb538e`（10-23，2.0 生效日）才是 S1。
 
 > 1.0 计划用的是「第 N 天」编号（D1 Reconcile、D2 容量、D3 分布式、D8 kind）。2.0 把单位换成了
 > session，两套编号不同源（D2→S1、D3→S2、D8→S5），且学习进度已和日历脱钩，所以仓库只用 session 号。
@@ -48,8 +52,8 @@ s02-distributed/
 
 | 目录 | = 计划里的 | 主题 | 状态 |
 | --- | --- | --- | --- |
-| `course/p0-environment/` | 前置 | 环境冒烟：`smoke_gloo.py`（无 GPU，用 gloo 后端） | 完成 |
-| `course/p1-reconcile/` | 前置 | Reconcile Loop：声明式、level vs edge、幂等收敛 | 完成（含 5 份对照实验日志） |
+| `course/pre-environment/` | 前置 | 环境冒烟：`smoke_gloo.py`（无 GPU，用 gloo 后端） | 完成 |
+| `course/pre-reconcile/` | 前置 | Reconcile Loop：声明式、level vs edge、幂等收敛 | 完成（含 5 份对照实验日志） |
 | `course/s01-capacity/` | S1 | 显存与算力三本账：TP/PP/DP/ZeRO/recompute | 完成 |
 | `course/s02-distributed/` | S2 | 分布式最小闭环：4 rank all-reduce + checkpoint 三段实验 | 完成 |
 | `course/s05-k8s-min/` | S5 | kind 本地集群：`kind-config.yaml` | 配置就绪（只有一个 yaml，尚未跑过） |
@@ -88,7 +92,7 @@ platform/
 | S6 准入 / 排队 / Gang | `scheduler.py` | `course/s06-scheduler/`（待建） | 未开始 |
 | S7 rank 分配 / 拒绝原因 / top-3 | `placement.py` | `course/s07-placement/`（待建） | 未开始 |
 
-前置 `p0-environment` / `p1-reconcile` 不在表里：它们是 2.0 §3.3 列的「保留（已完成）」，不占 20 个 session 的额度。
+前置 `pre-environment` / `pre-reconcile` 不在表里：它们是 2.0 §3.3 列的「保留（已完成）」，不占 20 个 session 的额度。
 
 S2 和 S5 故意不落平台模块：前者的产出是「rank / collective / ckpt 的语义验证过了」，后者的产出是「看清了 K8s 的 Pod 生命周期和三类卡住长什么样」——都不是「平台多了一个功能」。
 

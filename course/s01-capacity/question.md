@@ -8,7 +8,7 @@ Q2  激活公式里 34 和 5as/h 分别对应什么？为什么 attention 那一
 
 Q3  ZeRO-3 相比 ZeRO-1 省了多少显存、多了多少通信？为什么通信是 1.5×？
 
-Q4  为什么 TP 一般不超过 8？（提示：NVLink 域；用 P1 学过的一句话说明
+Q4  为什么 TP 一般不超过 8？（提示：NVLink 域；用 pre-reconcile 学过的一句话说明
     「跨机 TP」在 reconcile 视角下会让哪本账变难看）
 
 Q5  手算：1000 张 H100、7B、1T token、MFU 0.4，训练要多久？

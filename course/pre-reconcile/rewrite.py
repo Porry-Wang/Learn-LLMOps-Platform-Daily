@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-P1 · 亲手写一个 Reconcile Loop（教学版完整实现）
+前置 · 亲手写一个 Reconcile Loop（教学版完整实现）
 
 世界观演示：
   - 声明式：desired 是一份「合同」，程序只关心目标
@@ -44,9 +44,6 @@ def diff(desired_replicas: int, observed: dict) -> list:
     返回动作列表：[("create", "pod-xxx"), ("delete", "pod-yyy"), ...]
     差额为 0 → 返回空列表 → 什么都不做（幂等）。
     """
-
-    # Q5 ⏳ diff() 里数 Running 时，如果把状态过滤去掉、直接数 dict 里所有 key，
-    #      什么场景下会算错？
     running = {name for name, state in observed.items() if state == "Running"}
     actions = []
     if len(running) < desired_replicas:
@@ -179,7 +176,7 @@ def run_edge_triggered(fail_rate: float, drop_event: int, verbose: bool = True):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="P1 · Reconcile Loop 教学实验")
+    parser = argparse.ArgumentParser(description="前置 · Reconcile Loop 教学实验")
     parser.add_argument("--fail-rate", type=float, default=0.3,
                         help="每个动作的失败概率，默认 0.3")
     parser.add_argument("--disturbance", type=int, default=0,
@@ -191,8 +188,6 @@ def main():
     args = parser.parse_args()
 
     if args.edge_triggered:
-        print("⚠️  边缘触发模式（edge-triggered）：只在收到事件时才观察和对比。"
-              "这模拟的是没有轮询的控制器，比如早期的 Kubernetes。")
         run_edge_triggered(args.fail_rate, args.drop_event)
     else:
         run_level_triggered(args.fail_rate, args.disturbance)
