@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Day 1 · 亲手写一个 Reconcile Loop（教学版完整实现）
+P1 · 亲手写一个 Reconcile Loop（教学版完整实现）
 
 世界观演示：
   - 声明式：desired 是一份「合同」，程序只关心目标
@@ -176,7 +176,7 @@ def run_edge_triggered(fail_rate: float, drop_event: int, verbose: bool = True):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Day 1 · Reconcile Loop 教学实验")
+    parser = argparse.ArgumentParser(description="P1 · Reconcile Loop 教学实验")
     parser.add_argument("--fail-rate", type=float, default=0.3,
                         help="每个动作的失败概率，默认 0.3")
     parser.add_argument("--disturbance", type=int, default=0,

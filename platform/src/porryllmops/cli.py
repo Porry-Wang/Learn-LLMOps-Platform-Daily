@@ -251,7 +251,7 @@ def _simulate(store: Store, run: Run, scenario: str, gpus: int) -> None:
 
     if scenario == "bad-ckpt":
         store.finish_run(run.id, exit_code=0, ckpt_state="partial", loadable=True)
-        print("[simulate] 退出 0、能加载，但只存了权重（Day 3 的 C 组）")
+        print("[simulate] 退出 0、能加载，但只存了权重（S2 的 C 组）")
     else:
         store.finish_run(run.id, exit_code=0, ckpt_state="complete", loadable=True)
 

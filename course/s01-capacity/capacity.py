@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Day 2 · 显存与算力账本计算器（完整阅读版）
+S1 · 显存与算力账本计算器（完整阅读版）
 
 这份脚本把「一个训练配置要多少显存、要跑多久」拆成三本账：
 
@@ -325,7 +325,7 @@ def scan(args: argparse.Namespace) -> None:
 
 
 def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Day 2 · 显存与算力账本计算器")
+    p = argparse.ArgumentParser(description="S1 · 显存与算力账本计算器")
     p.add_argument("--params", type=float, required=True, help="参数量，单位 B")
     p.add_argument("--seq-len", type=int, default=4096)
     p.add_argument("--micro-bs", type=int, default=1)

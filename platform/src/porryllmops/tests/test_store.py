@@ -287,7 +287,7 @@ def test_run_starts_only_when_all_trainers_running(store):
 def test_three_successes_are_independent(store):
     task = store.create_task("finetune-7b")
 
-    # Day 3 的 C 组：退出 0、能加载，但只存了权重
+    # S2 的 C 组：退出 0、能加载，但只存了权重
     run = store.create_run(task.id)
     to_running(store, run)
     partial = store.finish_run(

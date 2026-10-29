@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Day 2 · 调试入口：把命令行参数写成 Python 用例
+S1 · 调试入口：把命令行参数写成 Python 用例
 
 为什么单独一个文件：
   - capacity.py 负责命令行解析和报告打印；

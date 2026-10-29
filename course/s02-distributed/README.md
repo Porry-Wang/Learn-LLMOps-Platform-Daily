@@ -1,4 +1,4 @@
-# Day 3 · 分布式最小闭环（2026-10-27）
+# S2 · 分布式最小闭环（2026-10-27）
 
 - 代码：`dist.py`（4 rank all-reduce）、`ckpt.py`（checkpoint 三段实验）、`debug_dist.py`（单进程可断点版）
 - 环境修复：`torchrun_local.py`（macOS 上 `socket.getfqdn()` 导致 rendezvous 卡死的绕行）
@@ -72,7 +72,7 @@ rank = dp_idx × (PP×TP) + pp_idx × TP + tp_idx
 | 6 | 建子组 | `new_group` 得到 TP / PP / DP 句柄 |
 | 7 | 各自装载并开跑 | 代码/配置/数据/ckpt 到位，出现 first loss 才算真跑起来 |
 
-第 1、4、7 步分别对应 Day 2 说的“资源就绪 / 程序启动 / 训练真正开始”三个时刻。
+第 1、4、7 步分别对应 S1 说的“资源就绪 / 程序启动 / 训练真正开始”三个时刻。
 
 ### 5. checkpoint：存的是“现场”，不是“模型”
 

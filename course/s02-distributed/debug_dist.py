@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Day 3 · 调试入口：把 all-reduce 拆成能单步看的三段。
+"""S2 · 调试入口：把 all-reduce 拆成能单步看的三段。
 
 为什么需要它：
     `dist.py` 必须由 torchrun 拉起 4 个子进程。PyCharm 的断点打在父进程上，

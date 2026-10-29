@@ -1,4 +1,4 @@
-# Day 1 · 标准答案（Q1–Q11 · 第一人称 STAR 版）
+# P1 · 标准答案（Q1–Q11 · 第一人称 STAR 版）
 
 > 用法：先看题，遮住答案，用「我遇到什么 → 我要解决什么 → 我做了什么 → 结果如何」讲一遍。
 > 题目见 `question.md`；当天实验记录见 `README.md`。
@@ -6,7 +6,7 @@
 > 视角说明：S 取自我在这门课里**真实跑过的实验**（含 log 证据）和**公开可查的行业做法**，
 > 不虚构任职经历，也不给任何平台代号。第一人称是“项目作者”的口吻，不是“某公司亲历者”。
 
-## 第一组：理论四问（D1.1）
+## 第一组：理论四问（P1.1）
 
 ### Q1｜命令式和声明式的区别？K8s 为什么选声明式？
 
@@ -102,7 +102,7 @@
 
 **S｜我遇到的情况**
 
-D1.5 我想验证“事件驱动是不是更省”，于是写了 edge 版：只在 `changed` 非空时运行。然后我故意在第 3 轮丢掉一条 Pod 死亡事件。结果是——第 4 到 30 轮，动作数全是 0，最终停在 0/3。日志我存成了 `exp5_drop3_fail05.log`。
+P1.5 我想验证“事件驱动是不是更省”，于是写了 edge 版：只在 `changed` 非空时运行。然后我故意在第 3 轮丢掉一条 Pod 死亡事件。结果是——第 4 到 30 轮，动作数全是 0，最终停在 0/3。日志我存成了 `exp5_drop3_fail05.log`。
 
 **T｜我要解决的问题**
 
@@ -128,7 +128,7 @@ D1.5 我想验证“事件驱动是不是更省”，于是写了 edge 版：只
 
 > 丢事件丢掉的不是一条通知，是未来任何一天发现自己出错的能力。
 
-## 第二组：代码追问三题（D1.2）
+## 第二组：代码追问三题（P1.2）
 
 ### Q5｜`diff()` 里数 Running 时，如果把状态过滤去掉、直接数 dict 里所有 key，什么场景下会算错？
 
@@ -220,7 +220,7 @@ D1.5 我想验证“事件驱动是不是更省”，于是写了 edge 版：只
 
 > 重试忠于动作清单，循环忠于目标与现实。
 
-## 第三组：词汇检查（D1.3）
+## 第三组：词汇检查（P1.3）
 
 ### Q8｜集合推导式 `{name for name, state in observed.items() if state == "Running"}` 的三部件各干什么？
 
@@ -252,9 +252,9 @@ D1.5 我想验证“事件驱动是不是更省”，于是写了 edge 版：只
 
 > 推导式四零件各管各的——从哪拿、怎么拆、留什么、装什么进结果。
 
-## 第四组：动手实验的两个口头解释（D1.4–D1.5）
+## 第四组：动手实验的两个口头解释（P1.4–P1.5）
 
-### Q9｜（D1.4）把 `pass` 改成 `break`、跑 `--disturbance 5` 后，为什么日志里根本看不到 💥 那行？
+### Q9｜（P1.4）把 `pass` 改成 `break`、跑 `--disturbance 5` 后，为什么日志里根本看不到 💥 那行？
 
 **S｜我遇到的情况**
 
@@ -284,7 +284,7 @@ D1.5 我想验证“事件驱动是不是更省”，于是写了 edge 版：只
 
 > 退出后打印的成功验证的是过去，控制器的职责是未来——两者没有逻辑关系。
 
-### Q10｜（D1.5）「丢事件就下班」和「达标就 break」为什么是同一个错误的两种写法？
+### Q10｜（P1.5）「丢事件就下班」和「达标就 break」为什么是同一个错误的两种写法？
 
 **S｜我遇到的情况**
 
@@ -314,13 +314,13 @@ D1.5 我想验证“事件驱动是不是更省”，于是写了 edge 版：只
 
 > 达标退出和只等报信是同一种赌法——赌世界不会在你不在场时改变。
 
-## 第五组：业务映射（D1.6）
+## 第五组：业务映射（P1.6）
 
 ### Q11｜Reconcile Loop 这套机制在 PorryLLMOps 平台里对应什么功能？给算法/Infra 同学解决什么痛点？如果这层抽错了会怎样？
 
 **S｜我遇到的情况**
 
-对着训练平台的九张截图梳理对象时，我发现容错那一节的动作用词几乎能一一对上：检测 → 判定 → 选 checkpoint → 重启 → 验证。这跟 D1 的 observe → diff → act 是同一个形状。而现实中，算法同学提交任务后要盯几小时到几天，Infra 靠人肉看板和人肉重启兜底。
+对着训练平台的九张截图梳理对象时，我发现容错那一节的动作用词几乎能一一对上：检测 → 判定 → 选 checkpoint → 重启 → 验证。这跟 P1 的 observe → diff → act 是同一个形状。而现实中，算法同学提交任务后要盯几小时到几天，Infra 靠人肉看板和人肉重启兜底。
 
 **T｜我要解决的问题**
 
@@ -361,9 +361,9 @@ python3 course/p1-reconcile/reconcile_loop.py --disturbance 5 | tee course/p1-re
 # 第二组：break 版——先把第 118 行 pass 改成 break，再跑
 python3 course/p1-reconcile/reconcile_loop.py --disturbance 5 | tee course/p1-reconcile/logs/exp4_quit.log
 
-# 改回 pass（D1.5 还要用满 30 轮的版本）
+# 改回 pass（P1.5 还要用满 30 轮的版本）
 
-# 第三组：D1.5 三组边缘触发参数
+# 第三组：P1.5 三组边缘触发参数
 python3 course/p1-reconcile/reconcile_loop.py --edge-triggered --drop-event 3  --fail-rate 0.5 | tee course/p1-reconcile/logs/exp5_drop3_fail05.log
 python3 course/p1-reconcile/reconcile_loop.py --edge-triggered --drop-event 10 --fail-rate 0.3 | tee course/p1-reconcile/logs/exp5_drop10.log
 python3 course/p1-reconcile/reconcile_loop.py --edge-triggered --drop-event 30 --fail-rate 0.3 | tee course/p1-reconcile/logs/exp5_drop30_control.log

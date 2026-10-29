@@ -1,6 +1,6 @@
 """PorryLLMOps 训练控制面 MVP。
 
-S1：容量与可行放置（D2 三本账 → feasible_placements）。
+S1：容量与可行放置（三本账 → feasible_placements）。
 S3：对象模型与存储（六张表 + 状态机 + 事件流水）。
 """
 
